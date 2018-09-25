@@ -11,6 +11,7 @@ namespace Tests
 		public const string Northwind         = "Northwind";
 		public const string NorthwindSQLite   = "Northwind.SQLite";
 		public const string NorthwindSQLiteMS = "Northwind.SQLite.MS";
+		public const string DB2i			  = "DB2.i";
 
 		/// <summary>
 		/// Fake provider, which doesn't execute any real queries. Could be used for tests, that shouldn't be affected

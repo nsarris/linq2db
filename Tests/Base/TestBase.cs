@@ -270,6 +270,7 @@ namespace Tests
 #if !NETSTANDARD1_6 && !NETSTANDARD2_0
 			ProviderName.Access,
 			ProviderName.DB2,
+			ProviderName.DB2i,
 			ProviderName.Informix,
 			TestProvName.MariaDB,
 			ProviderName.Sybase,

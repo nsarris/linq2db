@@ -25,6 +25,7 @@ namespace LinqToDB.DataProvider.DB2
 
 		static readonly DB2DataProvider _db2DataProviderzOS = new DB2DataProvider(ProviderName.DB2zOS, DB2Version.zOS);
 		static readonly DB2DataProvider _db2DataProviderLUW = new DB2DataProvider(ProviderName.DB2LUW, DB2Version.LUW);
+		static readonly DB2DataProvider _db2DataProvideri = new DB2DataProvider(ProviderName.DB2i, DB2Version.i);
 
 		public static bool AutoDetectProvider { get; set; }
 
@@ -48,6 +49,7 @@ namespace LinqToDB.DataProvider.DB2
 			DataConnection.AddDataProvider(ProviderName.DB2, _db2DataProviderLUW);
 			DataConnection.AddDataProvider(_db2DataProviderLUW);
 			DataConnection.AddDataProvider(_db2DataProviderzOS);
+			DataConnection.AddDataProvider(_db2DataProvideri);
 
 			DataConnection.AddProviderDetector(ProviderDetector);
 		}
@@ -75,7 +77,7 @@ namespace LinqToDB.DataProvider.DB2
 				case "DB2"               :
 				case "IBM.Data.DB2"      :
 
-					if (css.Name.Contains("LUW") || css.Name.Contains("z/OS") || css.Name.Contains("zOS"))
+					if (css.Name.Contains("LUW") || css.Name.Contains("z/OS") || css.Name.Contains("zOS") || css.Name.Contains("iSeries"))
 						break;
 
 					if (AutoDetectProvider)
@@ -124,6 +126,7 @@ namespace LinqToDB.DataProvider.DB2
 			switch (version)
 			{
 				case DB2Version.zOS : return _db2DataProviderzOS;
+				case DB2Version.i: return _db2DataProvideri;
 			}
 
 			return _db2DataProviderLUW;
@@ -194,6 +197,7 @@ namespace LinqToDB.DataProvider.DB2
 			switch (version)
 			{
 				case DB2Version.zOS : return new DataConnection(_db2DataProviderzOS, connectionString);
+				case DB2Version.i : return new DataConnection(_db2DataProvideri, connectionString);
 			}
 
 			return new DataConnection(_db2DataProviderLUW, connectionString);
@@ -204,6 +208,7 @@ namespace LinqToDB.DataProvider.DB2
 			switch (version)
 			{
 				case DB2Version.zOS : return new DataConnection(_db2DataProviderzOS, connection);
+				case DB2Version.i: return new DataConnection(_db2DataProvideri, connection);
 			}
 
 			return new DataConnection(_db2DataProviderLUW, connection);
@@ -214,6 +219,7 @@ namespace LinqToDB.DataProvider.DB2
 			switch (version)
 			{
 				case DB2Version.zOS : return new DataConnection(_db2DataProviderzOS, transaction);
+				case DB2Version.i: return new DataConnection(_db2DataProvideri, transaction);
 			}
 
 			return new DataConnection(_db2DataProviderLUW, transaction);

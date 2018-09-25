@@ -251,6 +251,7 @@ namespace Tests._Create
 		[Test, IncludeDataContextSource(ProviderName.SQLiteClassic)] public void SQLiteClassicData(string ctx) { RunScript(ctx+ ".Data", "\nGO\n",  "SQLite",   SQLiteAction); }
 		[Test, IncludeDataContextSource(ProviderName.Sybase)]        public void Sybase           (string ctx) { RunScript(ctx,          "\nGO\n",  "Sybase");        }
 		[Test, IncludeDataContextSource(ProviderName.DB2)]           public void DB2              (string ctx) { RunScript(ctx,          "\nGO\n",  "DB2");           }
+		[Test, IncludeDataContextSource(ProviderName.DB2i)]			 public void DB2i			  (string ctx) { RunScript(ctx,			 "\nGO\n", "DB2i"); }
 		[Test, IncludeDataContextSource(ProviderName.Informix)]      public void Informix         (string ctx) { RunScript(ctx,          "\nGO\n",  "Informix", InformixAction); }
 		[Test, IncludeDataContextSource(ProviderName.OracleManaged)] public void Oracle           (string ctx) { RunScript(ctx,          "\n/\n",   "Oracle");        }
 		[Test, IncludeDataContextSource(ProviderName.SqlCe)]         public void SqlCe            (string ctx) { RunScript(ctx,          "\nGO\n",  "SqlCe");         }

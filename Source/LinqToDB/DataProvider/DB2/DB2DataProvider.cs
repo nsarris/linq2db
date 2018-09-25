@@ -128,6 +128,7 @@ namespace LinqToDB.DataProvider.DB2
 		{
 			public static readonly DB2LUWMappingSchema DB2LUWMappingSchema = new DB2LUWMappingSchema();
 			public static readonly DB2zOSMappingSchema DB2zOSMappingSchema = new DB2zOSMappingSchema();
+			public static readonly DB2iMappingSchema DB2iMappingSchema = new DB2iMappingSchema();
 		}
 
 		public override MappingSchema MappingSchema
@@ -138,6 +139,7 @@ namespace LinqToDB.DataProvider.DB2
 				{
 					case DB2Version.LUW : return MappingSchemaInstance.DB2LUWMappingSchema;
 					case DB2Version.zOS : return MappingSchemaInstance.DB2zOSMappingSchema;
+					case DB2Version.i: return MappingSchemaInstance.DB2iMappingSchema;
 				}
 
 				return base.MappingSchema;
@@ -147,17 +149,29 @@ namespace LinqToDB.DataProvider.DB2
 #if !NETSTANDARD1_6
 		public override ISchemaProvider GetSchemaProvider()
 		{
-			return Version == DB2Version.zOS ?
-				new DB2zOSSchemaProvider() :
-				new DB2LUWSchemaProvider();
+			switch (Version)
+			{
+				
+				case DB2Version.zOS: return new DB2zOSSchemaProvider();
+				case DB2Version.i: return new DB2iSchemaProvider();
+				case DB2Version.LUW:
+				default:
+					return new DB2LUWSchemaProvider();
+			}
 		}
 #endif
 
 		public override ISqlBuilder CreateSqlBuilder()
 		{
-			return Version == DB2Version.zOS ?
-				new DB2zOSSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter) as ISqlBuilder:
-				new DB2LUWSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter);
+			switch (Version)
+			{
+
+				case DB2Version.zOS: return new DB2zOSSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter);
+				case DB2Version.i: return new DB2iSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter);
+				case DB2Version.LUW:
+				default:
+					return new DB2LUWSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter);
+			}
 		}
 
 		readonly DB2SqlOptimizer _sqlOptimizer;

@@ -21,6 +21,8 @@ namespace LinqToDB.DataProvider.DB2
 				{
 					case "zOS" :
 					case "z/OS": return new DB2DataProvider(ProviderName.DB2zOS, DB2Version.zOS);
+					case "i":
+					case "iSeries": return new DB2DataProvider(ProviderName.DB2i, DB2Version.i);
 				}
 			}
 

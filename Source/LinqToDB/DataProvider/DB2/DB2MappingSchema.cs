@@ -78,4 +78,12 @@ namespace LinqToDB.DataProvider.DB2
 		{
 		}
 	}
+
+	public class DB2iMappingSchema : MappingSchema
+	{
+		public DB2iMappingSchema()
+			: base(ProviderName.DB2i, DB2MappingSchema.Instance)
+		{
+		}
+	}
 }

@@ -6,5 +6,6 @@ namespace LinqToDB.DataProvider.DB2
 	{
 		LUW,
 		zOS,
+		i
 	}
 }
