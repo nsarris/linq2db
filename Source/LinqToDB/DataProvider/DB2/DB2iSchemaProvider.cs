@@ -39,7 +39,7 @@ namespace LinqToDB.DataProvider.DB2
 				, Column_Name
 				From QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSCOLUMNS
 
-                where System_Table_Schema in('{GetLibList(dataConnection)}')
+                where System_Table_Schema in({GetQualifiedLibList(dataConnection)})
 				 ";
 
 			ColumnInfo drf(IDataReader dr)
@@ -108,7 +108,7 @@ namespace LinqToDB.DataProvider.DB2
 		  Join QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSKEYCST fk on(fk.Constraint_Schema, fk.Constraint_Name) = (ref.Constraint_Schema, ref.Constraint_Name)
 		  Join QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSKEYCST uk on(uk.Constraint_Schema, uk.Constraint_Name) = (ref.Unique_Constraint_Schema, ref.Unique_Constraint_Name)
 		  Where uk.Ordinal_Position = fk.Ordinal_Position
-		  And fk.System_Table_Schema in('{GetLibList(dataConnection)}')
+		  And fk.System_Table_Schema in({GetQualifiedLibList(dataConnection)})
 		  Order By ThisSchema, ThisTable, Constraint_Name, Ordinal_Position
 		  ";
 
@@ -137,7 +137,7 @@ namespace LinqToDB.DataProvider.DB2
 			   , col.Column_Name   
 		  From QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSKEYCST col
 		  Join QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSCST    cst On(cst.constraint_SCHEMA, cst.constraint_NAME, cst.constraint_type) = (col.constraint_SCHEMA, col.constraint_NAME, 'PRIMARY KEY')
-		  And cst.System_Table_Schema in('{GetLibList(dataConnection)}')
+		  And cst.System_Table_Schema in({GetQualifiedLibList(dataConnection)})
 		  Order By cst.table_SCHEMA, cst.table_NAME, col.Ordinal_position
 		  ";
 
@@ -166,7 +166,7 @@ namespace LinqToDB.DataProvider.DB2
 		  , Specific_Name
 		  , Specific_Schema
 		  From QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSROUTINES 
-		  Where Specific_Schema in('{GetLibList(dataConnection)}')
+		  Where Specific_Schema in({GetQualifiedLibList(dataConnection)})
 		  Order By Specific_Schema, Specific_Name
 		  ";
 
@@ -206,7 +206,7 @@ namespace LinqToDB.DataProvider.DB2
 		  , Specific_Name
 		  , Specific_Schema
 		  From QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSPARMS 
-		  where Specific_Schema in('{GetLibList(dataConnection)}')
+		  where Specific_Schema in({GetQualifiedLibList(dataConnection)})
 		  Order By Specific_Schema, Specific_Name, Parameter_Name
 		  ";
 
@@ -247,7 +247,7 @@ namespace LinqToDB.DataProvider.DB2
 				  , System_Table_Schema
 				  From QSYS2{GetSqlObjectDelimiter(dataConnection)}SYSTABLES 
 				  Where Table_Type In('L', 'P', 'T', 'V')
-				  And System_Table_Schema in ('{GetLibList(dataConnection)}')	
+				  And System_Table_Schema in ({GetQualifiedLibList(dataConnection)})	
 				  Order By System_Table_Schema, System_Table_Name
 				 ";
 
@@ -337,17 +337,22 @@ namespace LinqToDB.DataProvider.DB2
 		}
 
 
-		private string GetLibList(DataConnection dataConnection)
+		private IEnumerable<string> GetLibList(DataConnection dataConnection)
 		{
-			//var stringBuilder = DB2iSeriesTools.CreateConnectionStringBuilder(providerType.Value, dataConnection.Connection.ConnectionString);
+			var dbc = new DbConnectionStringBuilder()
+			{
+				ConnectionString = dataConnection.Connection.ConnectionString
+			};
 
-			//if (stringBuilder.TryGetValue("LibraryList", out var liblist))
-			//	return string.Join("','", liblist.ToString().Split(','));
-			//else
-			//	return string.Empty;
+			if (dbc.TryGetValue("LibraryList", out var libraryList))
+				return libraryList.ToString().Split(' ', ',');
 
+			return Enumerable.Empty<string>();
+		}
 
-			return string.Empty;
+		private string GetQualifiedLibList(DataConnection dataConnection)
+		{
+			return "'" + string.Join("','", GetLibList(dataConnection)) + "'";
 		}
 	}
 }
