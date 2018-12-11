@@ -51,6 +51,9 @@ namespace Tests.DataProvider
 		{
 			using (var conn = new DataConnection(context))
 			{
+				
+				Assert.That(TestType<DB2DecimalFloat?>(conn, "decfloatDataType", DataType.Decimal).ToString(), Is.EqualTo(new DB2DecimalFloat(8888888m).ToString()));
+
 				Assert.That(TestType<long?>        (conn, "bigintDataType",    DataType.Int64),     Is.EqualTo(1000000L));
 				Assert.That(TestType<DB2Int64?>    (conn, "bigintDataType",    DataType.Int64),     Is.EqualTo(new DB2Int64(1000000L)));
 				Assert.That(TestType<int?>         (conn, "intDataType",       DataType.Int32),     Is.EqualTo(7777777));
@@ -58,7 +61,7 @@ namespace Tests.DataProvider
 				Assert.That(TestType<short?>       (conn, "smallintDataType",  DataType.Int16),     Is.EqualTo(100));
 				Assert.That(TestType<DB2Int16?>    (conn, "smallintDataType",  DataType.Int16),     Is.EqualTo(new DB2Int16(100)));
 				Assert.That(TestType<decimal?>     (conn, "decimalDataType",   DataType.Decimal),   Is.EqualTo(9999999m));
-				Assert.That(TestType<decimal?>     (conn, "decfloatDataType",  DataType.Decimal),   Is.EqualTo(8888888m));
+				Assert.That(TestType<decimal?>(conn, "decfloatDataType", DataType.Decimal), Is.EqualTo(8888888m));
 				Assert.That(TestType<float?>       (conn, "realDataType",      DataType.Single),    Is.EqualTo(20.31f));
 				Assert.That(TestType<DB2Real?>     (conn, "realDataType",      DataType.Single),    Is.EqualTo(new DB2Real(20.31f)));
 				Assert.That(TestType<double?>      (conn, "doubleDataType",    DataType.Double),    Is.EqualTo(16.2d));
@@ -94,9 +97,8 @@ namespace Tests.DataProvider
 				            TestType<DB2Blob>      (conn, "blobDataType",      DataType.VarBinary, skipNotNull:true);
 				            TestType<DB2Xml>       (conn, "xmlDataType",       DataType.Xml, skipPass:true);
 
-				Assert.That(TestType<DB2Decimal?>     (conn, "decimalDataType",   DataType.Decimal).  ToString(), Is.EqualTo(new DB2Decimal(9999999m).ToString()));
-				Assert.That(TestType<DB2Binary>       (conn, "varbinaryDataType", DataType.VarBinary).ToString(), Is.EqualTo(new DB2Binary(new byte[] { 49, 50, 51, 52 }).ToString()));
-				Assert.That(TestType<DB2DecimalFloat?>(conn, "decfloatDataType",  DataType.Decimal).  ToString(), Is.EqualTo(new DB2DecimalFloat(8888888m).ToString()));
+				Assert.That(TestType<DB2Decimal?>(conn, "decimalDataType", DataType.Decimal).ToString(), Is.EqualTo(new DB2Decimal(9999999m).ToString()));
+				Assert.That(TestType<DB2Binary>(conn, "varbinaryDataType", DataType.VarBinary).ToString(), Is.EqualTo(new DB2Binary(new byte[] { 49, 50, 51, 52 }).ToString()));
 			}
 		}
 
