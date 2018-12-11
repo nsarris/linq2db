@@ -1,0 +1,250 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DFF98CCC-63FC-4B7E-83B5-F53E69CFD830}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Playground</RootNamespace>
+    <AssemblyName>Playground</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="IBM.Data.DB2, Version=9.7.4.4, Culture=neutral, PublicKeyToken=7c307b91aa13d208, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\IBM\SQLLIB\BIN\netf40_32\IBM.Data.DB2.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DataModel\Activity\Activity.cs" />
+    <Compile Include="DataModel\Activity\ActivityMetadata.cs" />
+    <Compile Include="DataModel\Activity\ActivityReplicationQueueItem.cs" />
+    <Compile Include="DataModel\Activity\ActivitySource.cs" />
+    <Compile Include="DataModel\Activity\ActivityXPurpose.cs" />
+    <Compile Include="DataModel\Activity\Associations\Activity.cs" />
+    <Compile Include="DataModel\Activity\Associations\ActivityXPurpose.cs" />
+    <Compile Include="DataModel\Activity\Associations\Purpose.cs" />
+    <Compile Include="DataModel\Activity\ContactBusinessProcess.cs" />
+    <Compile Include="DataModel\Activity\ContactCategory.cs" />
+    <Compile Include="DataModel\Activity\ContactChannel.cs" />
+    <Compile Include="DataModel\Activity\ContactMedium.cs" />
+    <Compile Include="DataModel\Activity\Enums\ActivityPurposeCode.cs" />
+    <Compile Include="DataModel\Activity\Enums\ContactMediumCode.cs" />
+    <Compile Include="DataModel\Activity\Enums\ParticipantType.cs" />
+    <Compile Include="DataModel\Activity\Participant.cs" />
+    <Compile Include="DataModel\Activity\Purpose.cs" />
+    <Compile Include="DataModel\Arrangement\ArrangementAction.cs" />
+    <Compile Include="DataModel\Arrangement\ArrangementChildrenDetails.cs" />
+    <Compile Include="DataModel\Arrangement\ArrangementExtraRelationship.cs" />
+    <Compile Include="DataModel\Arrangement\ArrangementParentIndicator.cs" />
+    <Compile Include="DataModel\Arrangement\Association\ArrangementExtraRelationship.cs" />
+    <Compile Include="DataModel\Arrangement\Association\ArrangementParentIndicator.cs" />
+    <Compile Include="DataModel\Arrangement\PortfolioAction.cs" />
+    <Compile Include="DataModel\Calendar\CalendarEvent.cs" />
+    <Compile Include="DataModel\Calendar\CalendarEventParticipant.cs" />
+    <Compile Include="DataModel\Calendar\CalendarEventType.cs" />
+    <Compile Include="DataModel\Calendar\NameDays.cs" />
+    <Compile Include="DataModel\Calendar\UserCalendar.cs" />
+    <Compile Include="DataModel\Calls\IncomingCall.cs" />
+    <Compile Include="DataModel\Classification\Associations\Classification.cs" />
+    <Compile Include="DataModel\Classification\Classification.cs" />
+    <Compile Include="DataModel\Classification\ClassificationExtension.cs" />
+    <Compile Include="DataModel\CsaAlert\Associations\CsaAlert.cs" />
+    <Compile Include="DataModel\CsaAlert\CsaAlert.cs" />
+    <Compile Include="DataModel\CustomerLists\AcceptanceExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\CustomerList.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\CustomerListItemAnswer.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\CustomerListStatus.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\CustomerSubList.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\CustomerSubListXAnswer.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\FatcaExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\FatcaExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\InsuranceExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\InsuranceExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\LegitimacyExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\LegitimacyExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\TekeExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\TekeExpirationhISTORIC.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\TimeDepositExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\Associations\TimeDepositExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\Attributes\CustomerListTypeAttributes.cs" />
+    <Compile Include="DataModel\CustomerLists\Attributes\ListCategoryAttributes.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerList.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerListBranchCounter.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerListItemAnswer.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerListStatus.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerSubList.cs" />
+    <Compile Include="DataModel\CustomerLists\CustomerSubListXAnswer.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\AggregationTypeEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\AnswerTarget.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\AnswerType.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CountersTypeEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CustomerListAnswerSourceEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CustomerListCategoryEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CustomerListExternalEditSourceEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CustomerListSourceTypeEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\CustomerListTypeEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\DrillableEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\HistoricStateEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\ListActionsEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\ListExpandedEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\ListVisibilityEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\Enums\RMAListsEnum.cs" />
+    <Compile Include="DataModel\CustomerLists\FatcaExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\FatcaExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\InsuranceExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\InsuranceExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\LegitimacyExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\LegitimacyExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\ListActions.cs" />
+    <Compile Include="DataModel\CustomerLists\ListAnswerCounter.cs" />
+    <Compile Include="DataModel\CustomerLists\ListMetadataModel.cs" />
+    <Compile Include="DataModel\CustomerLists\TekeExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\TekeExpirationHistoric.cs" />
+    <Compile Include="DataModel\CustomerLists\TestList.cs" />
+    <Compile Include="DataModel\CustomerLists\TimeDepositExpiration.cs" />
+    <Compile Include="DataModel\CustomerLists\TimeDepositExpirationHistoric.cs" />
+    <Compile Include="DataModel\Customer\Account.cs" />
+    <Compile Include="DataModel\Customer\ArrangementChildrenDetails.cs" />
+    <Compile Include="DataModel\Customer\ArrangementParentIndicator.cs" />
+    <Compile Include="DataModel\Customer\Associations\CollateralDetailInfo.cs" />
+    <Compile Include="DataModel\Customer\Associations\Customer.cs" />
+    <Compile Include="DataModel\Customer\Associations\CustomerCommon.cs" />
+    <Compile Include="DataModel\Customer\Associations\FavoriteCustomer.cs" />
+    <Compile Include="DataModel\Customer\Associations\SelectedCustomer.cs" />
+    <Compile Include="DataModel\Customer\CollateralDetailInfo.cs" />
+    <Compile Include="DataModel\Customer\CollateralType.cs" />
+    <Compile Include="DataModel\Customer\Customer.cs" />
+    <Compile Include="DataModel\Customer\CustomerCommon.cs" />
+    <Compile Include="DataModel\Customer\CustomerLegalEntity.cs" />
+    <Compile Include="DataModel\Customer\CustomerLoan.cs" />
+    <Compile Include="DataModel\Customer\CustomerLosInfo.cs" />
+    <Compile Include="DataModel\Customer\CustomerPhysicalEntity.cs" />
+    <Compile Include="DataModel\Customer\CustomerProposal.cs" />
+    <Compile Include="DataModel\Customer\CustomerXSegment.cs" />
+    <Compile Include="DataModel\Customer\EconomicActivity.cs" />
+    <Compile Include="DataModel\Customer\Enum\CustomerGroupEnum.cs" />
+    <Compile Include="DataModel\Customer\Enum\CustomerMessagesEnum.cs" />
+    <Compile Include="DataModel\Customer\Enum\ESignatureEnum.cs" />
+    <Compile Include="DataModel\Customer\Enum\PortfolioHistoricalEnum.cs" />
+    <Compile Include="DataModel\Customer\Enum\PortfolioProductCategoryEnum.cs" />
+    <Compile Include="DataModel\Customer\FavouriteCustomer.cs" />
+    <Compile Include="DataModel\Customer\Profession.cs" />
+    <Compile Include="DataModel\Customer\SelectedCustomer.cs" />
+    <Compile Include="DataModel\Customer\TransactionalBehaviour.cs" />
+    <Compile Include="DataModel\Customer\VipXCustomers.cs" />
+    <Compile Include="DataModel\EnumHelper.cs" />
+    <Compile Include="DataModel\Exchange\ExchangeSyncState.cs" />
+    <Compile Include="DataModel\Import\EntityImportState.cs" />
+    <Compile Include="DataModel\Infrastructure\IceEvent.cs" />
+    <Compile Include="DataModel\LightRMA\Associations\CampaignCustomer.cs" />
+    <Compile Include="DataModel\LightRMA\Associations\CampaignCustomerHistoric.cs" />
+    <Compile Include="DataModel\LightRMA\CampaignCustomer.cs" />
+    <Compile Include="DataModel\LightRMA\CampaignCustomerHistoric.cs" />
+    <Compile Include="DataModel\LightRMA\RMACampaignsAnswersForImport.cs" />
+    <Compile Include="DataModel\NBA\Associations\CustomerNextBestAction.cs" />
+    <Compile Include="DataModel\NBA\Associations\CustomerNextBestActionHistory.cs" />
+    <Compile Include="DataModel\NBA\CustomerNextBestAction.cs" />
+    <Compile Include="DataModel\NBA\CustomerNextBestActionHistory.cs" />
+    <Compile Include="DataModel\NBA\NextBestAction.cs" />
+    <Compile Include="DataModel\Notifications\Associations\UserNotification.cs" />
+    <Compile Include="DataModel\Notifications\NotificationType.cs" />
+    <Compile Include="DataModel\Notifications\UserNotification.cs" />
+    <Compile Include="DataModel\Organization\Associations\User.cs" />
+    <Compile Include="DataModel\Organization\Branch.cs" />
+    <Compile Include="DataModel\Organization\BranchAddress.cs" />
+    <Compile Include="DataModel\Organization\BranchGeolocation.cs" />
+    <Compile Include="DataModel\Organization\BranchGeolocationPlaceholder.cs" />
+    <Compile Include="DataModel\Organization\Enums\ClassificationsEnum.cs" />
+    <Compile Include="DataModel\Organization\Enums\CustomerListAnswerStatusEnum.cs" />
+    <Compile Include="DataModel\Organization\Enums\ExternalSystemEnum.cs" />
+    <Compile Include="DataModel\Organization\LegalEntityType.cs" />
+    <Compile Include="DataModel\Organization\Product.cs" />
+    <Compile Include="DataModel\Organization\ProductHierarchy.cs" />
+    <Compile Include="DataModel\Organization\ProductView.cs" />
+    <Compile Include="DataModel\Organization\ProfessionsEconomicActivitiesUnion.cs" />
+    <Compile Include="DataModel\Organization\SegmentCrossSellIndicator.cs" />
+    <Compile Include="DataModel\Organization\User.cs" />
+    <Compile Include="DataModel\Organization\UserExtension.cs" />
+    <Compile Include="DataModel\Organization\UserMotto.cs" />
+    <Compile Include="DataModel\Organization\UserStatus.cs" />
+    <Compile Include="DataModel\Organization\VipXUsers.cs" />
+    <Compile Include="DataModel\Portfolio\Association\CustomerPortfolio.cs" />
+    <Compile Include="DataModel\Portfolio\CustomerPortfolio.cs" />
+    <Compile Include="DataModel\Portfolio\CustomerPortfolioItem.cs" />
+    <Compile Include="DataModel\RMA\RMACustomer.cs" />
+    <Compile Include="DataModel\RMA\RMAIndirectCustomer.cs" />
+    <Compile Include="DataModel\RMA\RMAOpportunity.cs" />
+    <Compile Include="DataModel\RMA\RMAPotentialCustomer.cs" />
+    <Compile Include="DataModel\SalesOpportunity\Associations\SalesOpportunity.cs" />
+    <Compile Include="DataModel\SalesOpportunity\Associations\SalesOpportunityStep.cs" />
+    <Compile Include="DataModel\SalesOpportunity\Associations\SalesOpportunityStepXActivity.cs" />
+    <Compile Include="DataModel\SalesOpportunity\Enums\CustomerResponseEnum.cs" />
+    <Compile Include="DataModel\SalesOpportunity\Enums\SalesOpportunityStepStateEnum.cs" />
+    <Compile Include="DataModel\SalesOpportunity\SalesOpportunity.cs" />
+    <Compile Include="DataModel\SalesOpportunity\SalesOpportunityMetadata.cs" />
+    <Compile Include="DataModel\SalesOpportunity\SalesOpportunityResponse.cs" />
+    <Compile Include="DataModel\SalesOpportunity\SalesOpportunityStep.cs" />
+    <Compile Include="DataModel\SalesOpportunity\SalesOpportunityStepXActivity.cs" />
+    <Compile Include="DataModel\SearchCustomer\Associations\CustomerSearchResultItem.cs" />
+    <Compile Include="DataModel\SearchCustomer\CustomerSearchResultItem.cs" />
+    <Compile Include="DataModel\SearchCustomer\DummyProposal.cs" />
+    <Compile Include="DataModel\SearchCustomer\DummySaleOpportunity.cs" />
+    <Compile Include="DataModel\SearchCustomer\DummySiebelCampaign.cs" />
+    <Compile Include="DataModel\Views\Associations\UserView.cs" />
+    <Compile Include="DataModel\Views\UserView.cs" />
+    <Compile Include="DataModel\Views\UserViewColumn.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Source\LinqToDB\LinqToDB.csproj">
+      <Project>{0e4e9a56-f285-4067-adaa-392acb9caaa7}</Project>
+      <Name>LinqToDB</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DataModel\Infrastructure\Associations\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
