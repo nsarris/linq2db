@@ -302,23 +302,20 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Informix,
-			ProviderName.SqlCe,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.OracleNative,
-			ProviderName.OracleManaged,
-			ProviderName.PostgreSQL,
-			ProviderName.MySql,
-			TestProvName.MariaDB,
-			TestProvName.MySql57,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.Access,
-			ProviderName.SapHana)]
-		public void Update9(string context)
+		[Test]
+		public void Update9(
+			[DataSources(
+				ProviderName.Informix,
+				ProviderName.SqlCe,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.MySql, TestProvName.MariaDB, TestProvName.MySql57,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Access,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -346,23 +343,20 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Informix,
-			ProviderName.SqlCe,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.OracleNative,
-			ProviderName.OracleManaged,
-			ProviderName.PostgreSQL,
-			ProviderName.MySql,
-			TestProvName.MariaDB,
-			TestProvName.MySql57,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.Access,
-			ProviderName.SapHana)]
-		public void Update10(string context)
+		[Test]
+		public void Update10(
+			[DataSources(
+				ProviderName.Informix,
+				ProviderName.SqlCe,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.MySql, TestProvName.MariaDB, TestProvName.MySql57,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Access,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -405,10 +399,18 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.DB2, ProviderName.Informix,
-			ProviderName.Firebird, TestProvName.Firebird3, ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.PostgreSQL)]
-		public void Update12(string context)
+		[Test]
+		public void Update12(
+			[DataSources(
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest, TestProvName.PostgreSQLLatest,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -422,10 +424,18 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.DB2, ProviderName.Informix,
-			ProviderName.Firebird, TestProvName.Firebird3, ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.PostgreSQL)]
-		public async Task Update12Async(string context)
+		[Test]
+		public async Task Update12Async(
+			[DataSources(
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -439,10 +449,18 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.DB2, ProviderName.Informix,
-			ProviderName.Firebird, TestProvName.Firebird3, ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.PostgreSQL)]
-		public void Update13(string context)
+		[Test]
+		public void Update13(
+			[DataSources(
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -565,7 +583,7 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(ProviderName.Sybase, ProviderName.Informix)]
+		[Test, DataContextSource(ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix)]
 		public void UpdateAssociation1(string context)
 		{
 			using (var db = GetDataContext(context))
@@ -596,7 +614,7 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(ProviderName.Sybase, ProviderName.Informix)]
+		[Test, DataContextSource(ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix)]
 		public async Task UpdateAssociation1Async(string context)
 		{
 			using (var db = GetDataContext(context))
@@ -627,7 +645,7 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(ProviderName.Sybase, ProviderName.Informix)]
+		[Test, DataContextSource(ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix)]
 		public void UpdateAssociation2(string context)
 		{
 			using (var db = GetDataContext(context))
@@ -658,7 +676,7 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(ProviderName.Sybase, ProviderName.Informix)]
+		[Test, DataContextSource(ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix)]
 		public void UpdateAssociation3(string context)
 		{
 			using (var db = GetDataContext(context))
@@ -689,7 +707,7 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(ProviderName.Sybase, ProviderName.Informix)]
+		[Test, DataContextSource(ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix)]
 		public void UpdateAssociation4(string context)
 		{
 			using (var db = GetDataContext(context))
@@ -756,19 +774,20 @@ namespace Tests.xUpdate
 			public Table1 Table1;
 		}
 
-		[Test, DataContextSource(false,
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			ProviderName.Informix,
-			ProviderName.OracleNative,
-			ProviderName.OracleManaged,
-			ProviderName.PostgreSQL,
-			ProviderName.SqlCe,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SapHana)]
-		public void UpdateAssociation5(string context)
+		[Test]
+		public void UpdateAssociation5(
+			[DataSources(
+				false,
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird,
+				ProviderName.Informix,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = new DataConnection(context))
 			{
@@ -845,19 +864,19 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.Informix,
-			ProviderName.PostgreSQL,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SqlCe,
-			ProviderName.SqlServer2000,
-			ProviderName.SapHana)]
-		public void UpdateTop(string context)
+		[Test]
+		public void UpdateTop(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.Informix,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SqlCe,
+				ProviderName.SqlServer2000,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -886,25 +905,22 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.Informix,
-			ProviderName.PostgreSQL,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SqlCe,
-			ProviderName.SqlServer2000,
-			ProviderName.SapHana,
-			ProviderName.MySql,
-			TestProvName.MySql57,
-			TestProvName.MariaDB,
-			ProviderName.Sybase,
-			ProviderName.OracleNative,
-			ProviderName.OracleManaged)]
-		public void TestUpdateTakeOrdered(string context)
+		[Test]
+		public void TestUpdateTakeOrdered(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.Informix,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SqlCe,
+				ProviderName.SqlServer2000,
+				ProviderName.SapHana,
+				ProviderName.MySql, TestProvName.MySql57, TestProvName.MariaDB,
+				ProviderName.Sybase, ProviderName.SybaseManaged,
+				ProviderName.OracleNative, ProviderName.OracleManaged)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -936,25 +952,22 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.Informix,
-			ProviderName.PostgreSQL,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SqlCe,
-			ProviderName.SqlServer2000,
-			ProviderName.SapHana,
-			ProviderName.MySql,
-			TestProvName.MySql57,
-			TestProvName.MariaDB,
-			ProviderName.Sybase,
-			ProviderName.OracleNative,
-			ProviderName.OracleManaged)]
-		public void TestUpdateSkipTake(string context)
+		[Test]
+		public void TestUpdateSkipTake(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.Informix,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SqlCe,
+				ProviderName.SqlServer2000,
+				ProviderName.SapHana,
+				ProviderName.MySql, TestProvName.MySql57, TestProvName.MariaDB,
+				ProviderName.Sybase, ProviderName.SybaseManaged,
+				ProviderName.OracleNative, ProviderName.OracleManaged)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -989,20 +1002,19 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.Informix,
-			ProviderName.PostgreSQL,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SqlCe,
-			ProviderName.SqlServer2000,
-			ProviderName.SapHana
-		 )]
-		public void TestUpdateTakeNotOrdered(string context)
+		[Test]
+		public void TestUpdateTakeNotOrdered(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.Informix,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SqlCe,
+				ProviderName.SqlServer2000,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1057,10 +1069,18 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.Access, ProviderName.Informix, ProviderName.Firebird, ProviderName.PostgreSQL,
-			ProviderName.MySql, TestProvName.MariaDB, TestProvName.MySql57, ProviderName.Sybase, TestProvName.Firebird3)]
-		public void UpdateIssue319Regression(string context)
+		[Test]
+		public void UpdateIssue319Regression(
+			[DataSources(
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Access,
+				ProviderName.Informix,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.MySql, TestProvName.MariaDB, TestProvName.MySql57,
+				ProviderName.Sybase, ProviderName.SybaseManaged,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1180,5 +1200,93 @@ namespace Tests.xUpdate
 				}
 			}
 		}
+
+		[ActiveIssue(":NEW as parameter", Configuration = ProviderName.OracleNative)]
+		[Test, DataContextSource]
+		public void UpdateByTableName(string context)
+		{
+			const string schemaName = null;
+			const string tableName  = "xxPerson";
+
+			using (var db = GetDataContext(context))
+			{
+				db.DropTable<Patient>(tableName, schemaName: schemaName, throwExceptionIfNotExists: false);
+			}
+
+			using (var db = GetDataContext(context))
+			{
+				var table = db.CreateTable<Person>(tableName, schemaName: schemaName);
+
+				Assert.AreEqual(tableName,  table.TableName);
+				Assert.AreEqual(schemaName, table.SchemaName);
+
+				var person = new Person()
+				{
+					FirstName = "Steven",
+					LastName  = "King",
+					Gender    = Gender.Male,
+				};
+
+				// insert a row into the table
+				db.Insert(person, tableName: tableName, schemaName: schemaName);
+				var newCount  = table.Count();
+				Assert.AreEqual(1, newCount);
+
+				var personForUpdate = table.Single();
+
+				// update that row
+				personForUpdate.MiddleName = "None";
+				db.Update(personForUpdate, tableName: tableName, schemaName: schemaName);
+
+				var updatedPerson = table.Single();
+				Assert.AreEqual("None", updatedPerson.MiddleName);
+
+				table.Drop();
+			}
+		}
+
+		[Test, DataContextSource]
+		public async Task UpdateByTableNameAsync(string context)
+		{
+			const string schemaName = null;
+			const string tableName  = "xxPerson";
+
+			using (var db = GetDataContext(context))
+			{
+				await db.DropTableAsync<Patient>(tableName, schemaName: schemaName, throwExceptionIfNotExists: false);
+			}
+
+			using (var db = GetDataContext(context))
+			{
+				var table = await db.CreateTableAsync<Person>(tableName, schemaName: schemaName);
+
+				Assert.AreEqual(tableName,  table.TableName);
+				Assert.AreEqual(schemaName, table.SchemaName);
+
+				var person = new Person()
+				{
+					FirstName = "Steven",
+					LastName  = "King",
+					Gender    = Gender.Male,
+				};
+
+				// insert a row into the table
+				await db.InsertAsync(person, tableName: tableName, schemaName: schemaName);
+				var newCount  = await table.CountAsync();
+				Assert.AreEqual(1, newCount);
+
+				var personForUpdate = await table.SingleAsync();
+
+				// update that row
+				personForUpdate.MiddleName = "None";
+				await db.UpdateAsync(personForUpdate, tableName: tableName, schemaName: schemaName);
+
+				var updatedPerson = await table.SingleAsync();
+				Assert.AreEqual("None", updatedPerson.MiddleName);
+
+				await table.DropAsync();
+			}
+		}
+
 	}
 }

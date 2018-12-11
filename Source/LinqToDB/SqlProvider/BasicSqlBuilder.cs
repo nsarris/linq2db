@@ -36,16 +36,18 @@ namespace LinqToDB.SqlProvider
 
 		#region Support Flags
 
-		public virtual bool IsNestedJoinSupported           { get { return true; } }
-		public virtual bool IsNestedJoinParenthesisRequired { get { return false; } }
+		public virtual bool IsNestedJoinSupported           => true;
+		public virtual bool IsNestedJoinParenthesisRequired => false;
 
 		/// <summary>
 		/// True if it is needed to wrap join condition with ()
 		/// </summary>
 		/// <example>
+		/// <code>
 		/// INNER JOIN Table2 t2 ON (t1.Value = t2.Value)
+		/// </code>
 		/// </example>
-		public virtual bool WrapJoinCondition               { get { return false; } }
+		public virtual bool WrapJoinCondition => false;
 
 		#endregion
 
@@ -60,10 +62,17 @@ namespace LinqToDB.SqlProvider
 
 		#region BuildSql
 
-		public void BuildSql(int commandNumber, SqlStatement statement, StringBuilder sb, int startIndent = 0)
+		internal void BuildSqlWithAliases(int commandNumber, SqlStatement statement, StringBuilder sb, int startIndent = 0)
 		{
 			BuildSql(commandNumber, statement, sb, startIndent, false);
 		}
+
+		public void BuildSql(int commandNumber, SqlStatement statement, StringBuilder sb, int startIndent = 0)
+		{
+			BuildSql(commandNumber, statement, sb, startIndent, CanSkipRootAliases(statement));
+		}
+
+		protected virtual bool CanSkipRootAliases(SqlStatement statement) => true;
 
 		protected virtual void BuildSql(int commandNumber, SqlStatement statement, StringBuilder sb, int indent, bool skipAlias)
 		{
@@ -91,11 +100,11 @@ namespace LinqToDB.SqlProvider
 			}
 			else
 			{
-				BuildCommand(commandNumber);
+				BuildCommand(statement, commandNumber);
 			}
 		}
 
-		protected virtual void BuildCommand(int commandNumber)
+		protected virtual void BuildCommand(SqlStatement statement, int commandNumber)
 		{
 		}
 
@@ -150,19 +159,21 @@ namespace LinqToDB.SqlProvider
 		{
 			switch (Statement.QueryType)
 			{
-				case QueryType.Select        : BuildSelectQuery((SqlSelectStatement)Statement);                                 break;
-				case QueryType.Delete        : BuildDeleteQuery((SqlDeleteStatement)Statement);                                 break;
-				case QueryType.Update        : BuildUpdateQuery(Statement, Statement.SelectQuery, ((SqlUpdateStatement)Statement).Update); break;
-				case QueryType.Insert        : BuildInsertQuery(Statement, ((SqlInsertStatement)Statement).Insert);             break;
-				case QueryType.InsertOrUpdate: BuildInsertOrUpdateQuery((SqlInsertOrUpdateStatement)Statement);                 break;
-				case QueryType.CreateTable   : BuildCreateTableStatement((SqlCreateTableStatement)Statement);                   break;
-				case QueryType.DropTable     : BuildDropTableStatement((SqlDropTableStatement)Statement);                       break;
-				default                      : BuildUnknownQuery();                                                             break;
+				case QueryType.Select        : BuildSelectQuery           ((SqlSelectStatement)Statement);                     break;
+				case QueryType.Delete        : BuildDeleteQuery           ((SqlDeleteStatement)Statement);                     break;
+				case QueryType.Update        : BuildUpdateQuery           (Statement, Statement.SelectQuery, ((SqlUpdateStatement)Statement).Update); break;
+				case QueryType.Insert        : BuildInsertQuery           (Statement, ((SqlInsertStatement)Statement).Insert, false); break;
+				case QueryType.InsertOrUpdate: BuildInsertOrUpdateQuery   ((SqlInsertOrUpdateStatement)Statement);             break;
+				case QueryType.CreateTable   : BuildCreateTableStatement  ((SqlCreateTableStatement)Statement);                break;
+				case QueryType.DropTable     : BuildDropTableStatement    ((SqlDropTableStatement)Statement);                  break;
+				case QueryType.TruncateTable : BuildTruncateTableStatement((SqlTruncateTableStatement)Statement);              break;
+				default                      : BuildUnknownQuery();        break;
 			}
 		}
 
 		protected virtual void BuildDeleteQuery(SqlDeleteStatement deleteStatement)
 		{
+			BuildStep = Step.WithClause;    BuildWithClause(deleteStatement.With);
 			BuildStep = Step.DeleteClause;  BuildDeleteClause(deleteStatement);
 			BuildStep = Step.FromClause;    BuildFromClause(Statement, deleteStatement.SelectQuery);
 			BuildStep = Step.WhereClause;   BuildWhereClause(deleteStatement.SelectQuery);
@@ -172,8 +183,31 @@ namespace LinqToDB.SqlProvider
 			BuildStep = Step.OffsetLimit;   BuildOffsetLimit(deleteStatement.SelectQuery);
 		}
 
+		protected void BuildDeleteQuery2(SqlDeleteStatement deleteStatement)
+		{
+			BuildStep = Step.DeleteClause; BuildDeleteClause(deleteStatement);
+
+			while (StringBuilder[StringBuilder.Length - 1] == ' ')
+				StringBuilder.Length--;
+
+			StringBuilder.AppendLine();
+			AppendIndent().AppendLine("(");
+
+			++Indent;
+
+			var selectStatement = new SqlSelectStatement(deleteStatement.SelectQuery) { With = deleteStatement.GetWithClause() };
+
+			((BasicSqlBuilder)CreateSqlBuilder()).BuildSql(0, selectStatement, StringBuilder, Indent);
+
+			--Indent;
+
+			AppendIndent().AppendLine(")");
+
+		}
+
 		protected virtual void BuildUpdateQuery(SqlStatement statement, SelectQuery selectQuery, SqlUpdateClause updateClause)
 		{
+			BuildStep = Step.WithClause;    BuildWithClause(statement.GetWithClause());
 			BuildStep = Step.UpdateClause;  BuildUpdateClause(Statement, selectQuery, updateClause);
 			BuildStep = Step.FromClause;    BuildFromClause(Statement, selectQuery);
 			BuildStep = Step.WhereClause;   BuildWhereClause(selectQuery);
@@ -197,18 +231,13 @@ namespace LinqToDB.SqlProvider
 
 		protected virtual void BuildCteBody(SelectQuery selectQuery)
 		{
-			BuildStep = Step.SelectClause;  BuildSelectClause(selectQuery);
-			BuildStep = Step.FromClause;    BuildFromClause(null, selectQuery);
-			BuildStep = Step.WhereClause;   BuildWhereClause(selectQuery);
-			BuildStep = Step.GroupByClause; BuildGroupByClause(selectQuery);
-			BuildStep = Step.HavingClause;  BuildHavingClause(selectQuery);
-			BuildStep = Step.OrderByClause; BuildOrderByClause(selectQuery);
-			BuildStep = Step.OffsetLimit;   BuildOffsetLimit(selectQuery);
+			((BasicSqlBuilder)CreateSqlBuilder()).BuildSql(0, new SqlSelectStatement(selectQuery), StringBuilder, Indent, SkipAlias);
 		}
 
-		protected virtual void BuildInsertQuery(SqlStatement statement, SqlInsertClause insertClasuse)
+		protected virtual void BuildInsertQuery(SqlStatement statement, SqlInsertClause insertClause, bool addAlias)
 		{
-			BuildStep = Step.InsertClause; BuildInsertClause(statement, insertClasuse);
+			BuildStep = Step.WithClause;   BuildWithClause(statement.GetWithClause());
+			BuildStep = Step.InsertClause; BuildInsertClause(statement, insertClause, addAlias);
 
 			if (statement.QueryType == QueryType.Insert && statement.SelectQuery.From.Tables.Count != 0)
 			{
@@ -221,8 +250,39 @@ namespace LinqToDB.SqlProvider
 				BuildStep = Step.OffsetLimit;   BuildOffsetLimit(statement.SelectQuery);
 			}
 
-			if (insertClasuse.WithIdentity)
-				BuildGetIdentity(insertClasuse);
+			if (insertClause.WithIdentity)
+				BuildGetIdentity(insertClause);
+		}
+
+		protected void BuildInsertQuery2(SqlStatement statement, SqlInsertClause insertClause, bool addAlias)
+		{
+			BuildStep = Step.InsertClause;
+			BuildInsertClause(statement, insertClause, addAlias);
+
+			AppendIndent().AppendLine("SELECT * FROM");
+			AppendIndent().AppendLine("(");
+
+			++Indent;
+
+			BuildStep = Step.WithClause;   BuildWithClause(statement.GetWithClause());
+
+			if (statement.QueryType == QueryType.Insert && statement.SelectQuery.From.Tables.Count != 0)
+			{
+				BuildStep = Step.SelectClause;  BuildSelectClause(statement.SelectQuery);
+				BuildStep = Step.FromClause;    BuildFromClause(statement, statement.SelectQuery);
+				BuildStep = Step.WhereClause;   BuildWhereClause(statement.SelectQuery);
+				BuildStep = Step.GroupByClause; BuildGroupByClause(statement.SelectQuery);
+				BuildStep = Step.HavingClause;  BuildHavingClause(statement.SelectQuery);
+				BuildStep = Step.OrderByClause; BuildOrderByClause(statement.SelectQuery);
+				BuildStep = Step.OffsetLimit;   BuildOffsetLimit(statement.SelectQuery);
+			}
+
+			if (insertClause.WithIdentity)
+				BuildGetIdentity(insertClause);
+
+			--Indent;
+
+			AppendIndent().AppendLine(")");
 		}
 
 		protected virtual void BuildUnknownQuery()
@@ -268,39 +328,70 @@ namespace LinqToDB.SqlProvider
 
 		#region Build CTE
 
+		protected virtual bool IsRecursiveCteKeywordRequired => false;
+
 		protected virtual void BuildWithClause(SqlWithClause with)
 		{
 			if (with == null || with.Clauses.Count == 0)
 				return;
 
-			AppendIndent();
-			StringBuilder.AppendLine("WITH");
-			Indent++;
-
 			var first = true;
 
 			foreach (var cte in with.Clauses)
 			{
-				if (!first)
-					StringBuilder.Append(',').AppendLine();
-				first = false;
-
-				AppendIndent();
-				StringBuilder
-					.Append(cte.Name)
-					.Append(" (");
-
-				var firstField = true;
-				foreach (var field in cte.Fields.Values)
+				if (first)
 				{
-					if (!firstField)
-						StringBuilder.Append(", ");
-					firstField = false;
-					StringBuilder.Append(Convert(field.PhysicalName, ConvertType.NameToQueryField));
+					AppendIndent();
+					StringBuilder.Append("WITH ");
+	
+					if (IsRecursiveCteKeywordRequired && with.Clauses.Any(c => c.IsRecursive))
+						StringBuilder.Append("RECURSIVE ");
+
+					first = false;
+				}
+				else
+				{
+					StringBuilder.Append(',').AppendLine();
+					AppendIndent();
 				}
 
-				StringBuilder.AppendLine(")");
-				Indent--;
+				ConvertTableName(StringBuilder, null, null, cte.Name);
+
+				if (cte.Fields.Count > 3)
+				{
+					StringBuilder.AppendLine();
+					AppendIndent(); StringBuilder.AppendLine("(");
+					++Indent;
+
+					var firstField = true;
+					foreach (var field in cte.Fields)
+					{
+						if (!firstField)
+							StringBuilder.AppendLine(", ");
+						firstField = false;
+						AppendIndent();
+						StringBuilder.Append(Convert(field.PhysicalName, ConvertType.NameToQueryField));
+					}
+
+					--Indent;
+					StringBuilder.AppendLine();
+					AppendIndent(); StringBuilder.AppendLine(")");
+				}
+				else if (cte.Fields.Count > 0)
+				{
+					StringBuilder.Append(" (");
+
+					var firstField = true;
+					foreach (var field in cte.Fields)
+					{
+						if (!firstField)
+							StringBuilder.Append(", ");
+						firstField = false;
+						StringBuilder.Append(Convert(field.PhysicalName, ConvertType.NameToQueryField));
+					}
+					StringBuilder.AppendLine(")");
+				}
+
 				AppendIndent();
 				StringBuilder.AppendLine("AS");
 				AppendIndent();
@@ -313,7 +404,7 @@ namespace LinqToDB.SqlProvider
 				Indent--;
 
 				AppendIndent();
-				StringBuilder.AppendLine(")");
+				StringBuilder.Append(")");
 			}
 
 			StringBuilder.AppendLine();
@@ -359,7 +450,7 @@ namespace LinqToDB.SqlProvider
 				AppendIndent();
 				BuildColumnExpression(selectQuery, col.Expression, col.Alias, ref addAlias);
 
-				if (!SkipAlias && addAlias && col.Alias != null)
+				if (!SkipAlias && addAlias && !col.Alias.IsNullOrEmpty())
 					StringBuilder.Append(" as ").Append(Convert(col.Alias, ConvertType.NameToQueryFieldAlias));
 			}
 
@@ -465,9 +556,9 @@ namespace LinqToDB.SqlProvider
 
 		#region Build Insert
 
-		protected void BuildInsertClause(SqlStatement statement, SqlInsertClause insertClause)
+		protected void BuildInsertClause(SqlStatement statement, SqlInsertClause insertClause, bool addAlias)
 		{
-			BuildInsertClause(statement, insertClause, "INSERT INTO ", true);
+			BuildInsertClause(statement, insertClause, "INSERT INTO ", true, addAlias);
 		}
 
 		protected virtual void BuildEmptyInsert(SqlInsertClause insertClause)
@@ -483,15 +574,29 @@ namespace LinqToDB.SqlProvider
 		{
 			Statement     = statement;
 			StringBuilder = sb;
-			BuildInsertClause(statement, statement.RequireInsertClause(), null, false);
+			BuildInsertClause(statement, statement.RequireInsertClause(), null, false, false);
 		}
 
-		protected virtual void BuildInsertClause(SqlStatement statement, SqlInsertClause insertClause, string insertText, bool appendTableName)
+		protected virtual void BuildInsertClause(SqlStatement statement, SqlInsertClause insertClause, string insertText, bool appendTableName, bool addAlias)
 		{
 			AppendIndent().Append(insertText);
 
 			if (appendTableName)
+			{
 				BuildPhysicalTable(insertClause.Into, null);
+
+				if (addAlias)
+				{
+					var ts = Statement.SelectQuery.GetTableSource(insertClause.Into);
+					var alias = GetTableAlias(ts);
+					if (alias != null)
+					{
+						StringBuilder
+							.Append(" AS ")
+							.Append(Convert(alias, ConvertType.NameToQueryTableAlias));
+					}
+				}
+			}
 
 			if (insertClause.Items.Count == 0)
 			{
@@ -571,6 +676,8 @@ namespace LinqToDB.SqlProvider
 
 		protected virtual void BuildInsertOrUpdateQueryAsMerge(SqlInsertOrUpdateStatement insertOrUpdate, string fromDummyTable)
 		{
+			SkipAlias = false;
+
 			var table       = insertOrUpdate.Insert.Into;
 			var targetAlias = Convert(insertOrUpdate.SelectQuery.From.Tables[0].Alias, ConvertType.NameToQueryTableAlias).ToString();
 			var sourceAlias = Convert(GetTempAliases(1, "s")[0],        ConvertType.NameToQueryTableAlias).ToString();
@@ -609,11 +716,27 @@ namespace LinqToDB.SqlProvider
 
 				AppendIndent();
 
+				if (key.Column.CanBeNull)
+				{
+					StringBuilder.Append("(");
+
+					StringBuilder.Append(targetAlias).Append('.');
+					BuildExpression(key.Column, false, false);
+					StringBuilder.Append(" IS NULL AND ");
+
+					StringBuilder.Append(sourceAlias).Append('.');
+					BuildExpression(key.Column, false, false);
+					StringBuilder.Append(" IS NULL OR ");
+				}
+
 				StringBuilder.Append(targetAlias).Append('.');
 				BuildExpression(key.Column, false, false);
 
 				StringBuilder.Append(" = ").Append(sourceAlias).Append('.');
 				BuildExpression(key.Column, false, false);
+
+				if (key.Column.CanBeNull)
+					StringBuilder.Append(")");
 
 				if (i + 1 < keys.Count)
 					StringBuilder.Append(" AND");
@@ -638,7 +761,7 @@ namespace LinqToDB.SqlProvider
 			AppendIndent().AppendLine("WHEN NOT MATCHED THEN");
 
 			Indent++;
-			BuildInsertClause(insertOrUpdate, insertOrUpdate.Insert, "INSERT", false);
+			BuildInsertClause(insertOrUpdate, insertOrUpdate.Insert, "INSERT", false, false);
 			Indent--;
 
 			while (EndLine.Contains(StringBuilder[StringBuilder.Length - 1]))
@@ -716,11 +839,23 @@ namespace LinqToDB.SqlProvider
 
 				AppendIndent();
 
+				if (expr.Column.CanBeNull)
+				{
+					StringBuilder.Append("(");
+
+					StringBuilder.Append(alias).Append('.');
+					BuildExpression(expr.Column, false, false);
+					StringBuilder.Append(" IS NULL OR ");
+				}
+
 				StringBuilder.Append(alias).Append('.');
 				BuildExpression(expr.Column, false, false);
 
 				StringBuilder.Append(" = ");
 				BuildExpression(Precedence.Comparison, expr.Expression);
+
+				if (expr.Column.CanBeNull)
+					StringBuilder.Append(")");
 
 				if (i + 1 < exprs.Count)
 					StringBuilder.Append(" AND");
@@ -745,7 +880,7 @@ namespace LinqToDB.SqlProvider
 
 			Indent++;
 
-			BuildInsertQuery(insertOrUpdate, insertOrUpdate.Insert);
+			BuildInsertQuery(insertOrUpdate, insertOrUpdate.Insert, false);
 
 			Indent--;
 
@@ -758,6 +893,24 @@ namespace LinqToDB.SqlProvider
 		#endregion
 
 		#region Build DDL
+
+		protected virtual void BuildTruncateTableStatement(SqlTruncateTableStatement truncateTable)
+		{
+			var table = truncateTable.Table;
+
+			AppendIndent();
+
+			BuildTruncateTable(truncateTable);
+
+			BuildPhysicalTable(table, null);
+			StringBuilder.AppendLine();
+		}
+
+		protected virtual void BuildTruncateTable(SqlTruncateTableStatement truncateTable)
+		{
+			//StringBuilder.Append("TRUNCATE TABLE ");
+			StringBuilder.Append("DELETE FROM ");
+		}
 
 		protected virtual void BuildDropTableStatement(SqlDropTableStatement dropTable)
 		{
@@ -815,7 +968,9 @@ namespace LinqToDB.SqlProvider
 			AppendIndent().Append("(");
 			Indent++;
 
-			var fields = table.Fields.Select(f => new CreateFieldInfo { Field = f.Value, StringBuilder = new StringBuilder() }).ToList();
+			// Order columns by the Order field. Positive first then negative.
+			var orderedFields = table.Fields.Values.OrderBy(_ => _.CreateOrder >= 0 ? 0 : (_.CreateOrder == null ? 1 : 2)).ThenBy(_ => _.CreateOrder);
+			var fields = orderedFields.Select(f => new CreateFieldInfo { Field = f, StringBuilder = new StringBuilder() }).ToList();
 			var maxlen = 0;
 
 			void AppendToMax(bool addCreateFormat)
@@ -1130,6 +1285,14 @@ namespace LinqToDB.SqlProvider
 					StringBuilder.Append(GetPhysicalTableName(table, alias));
 					break;
 
+				case QueryElementType.SqlRawSqlTable :
+					StringBuilder.Append("(").AppendLine();
+					var rawSqlTable = (SqlRawSqlTable)table;
+					BuildFormatValues(IdentText(rawSqlTable.SQL, Indent + 1), rawSqlTable.Parameters, () => Precedence.Primary);
+					StringBuilder.AppendLine();
+					AppendIndent().Append(")");
+					break;
+
 				default                          :
 					throw new InvalidOperationException();
 			}
@@ -1159,7 +1322,7 @@ namespace LinqToDB.SqlProvider
 			}
 		}
 
-		void BuildJoinTable(SelectQuery selectQuery, SqlJoinedTable @join, ref int joinCounter)
+		void BuildJoinTable(SelectQuery selectQuery, SqlJoinedTable join, ref int joinCounter)
 		{
 			StringBuilder.AppendLine();
 			Indent++;
@@ -1581,7 +1744,7 @@ namespace LinqToDB.SqlProvider
 					{
 						var p = (SqlPredicate.NotExpr)predicate;
 
-						if (((SqlPredicate.NotExpr)predicate).IsNot)
+						if (p.IsNot)
 							StringBuilder.Append("NOT ");
 
 						BuildExpression(
@@ -1597,13 +1760,13 @@ namespace LinqToDB.SqlProvider
 					{
 						var p = (SqlPredicate.Expr)predicate;
 
-						if (p.Expr1 is SqlValue)
+						if (p.Expr1 is SqlValue sqlValue)
 						{
-							var value = ((SqlValue)p.Expr1).Value;
+							var value = sqlValue.Value;
 
-							if (value is bool)
+							if (value is bool b)
 							{
-								StringBuilder.Append((bool)value ? "1 = 1" : "1 = 0");
+								StringBuilder.Append(b ? "1 = 1" : "1 = 0");
 								return;
 							}
 						}
@@ -1627,9 +1790,9 @@ namespace LinqToDB.SqlProvider
 				{
 					ISqlExpression e = null;
 
-					if (expr.Expr1 is IValueContainer && ((IValueContainer) expr.Expr1).Value == null)
+					if (expr.Expr1 is IValueContainer container && container.Value == null)
 						e = expr.Expr2;
-					else if (expr.Expr2 is IValueContainer && ((IValueContainer) expr.Expr2).Value == null)
+					else if (expr.Expr2 is IValueContainer c && c.Value == null)
 						e = expr.Expr1;
 
 					if (e != null)
@@ -1683,10 +1846,9 @@ namespace LinqToDB.SqlProvider
 			{
 				ICollection values = p.Values;
 
-				if (p.Values.Count == 1 && p.Values[0] is SqlParameter &&
-					!(p.Expr1.SystemType == typeof(string) && ((SqlParameter)p.Values[0]).Value is string))
+				if (p.Values.Count == 1 && p.Values[0] is SqlParameter pr &&
+					!(p.Expr1.SystemType == typeof(string) && pr.Value is string))
 				{
-					var pr      = (SqlParameter)p.Values[0];
 					var prValue = pr.Value;
 
 					if (prValue == null)
@@ -1695,14 +1857,11 @@ namespace LinqToDB.SqlProvider
 						return;
 					}
 
-					if (prValue is IEnumerable)
+					if (prValue is IEnumerable items)
 					{
-						var items = (IEnumerable)prValue;
-
-						if (p.Expr1 is ISqlTableSource)
+						if (p.Expr1 is ISqlTableSource table)
 						{
 							var firstValue = true;
-							var table      = (ISqlTableSource)p.Expr1;
 							var keys       = table.GetKeys(true);
 
 							if (keys == null || keys.Count == 0)
@@ -1722,8 +1881,8 @@ namespace LinqToDB.SqlProvider
 									var field = GetUnderlayingField(keys[0]);
 									var value = field.ColumnDescriptor.MemberAccessor.GetValue(item);
 
-									if (value is ISqlExpression)
-										BuildExpression((ISqlExpression)value);
+									if (value is ISqlExpression expression)
+										BuildExpression(expression);
 									else
 										BuildValue(
 											new SqlDataType(
@@ -1879,8 +2038,8 @@ namespace LinqToDB.SqlProvider
 					}
 				}
 
-				if (value is ISqlExpression)
-					BuildExpression((ISqlExpression)value);
+				if (value is ISqlExpression expression)
+					BuildExpression(expression);
 				else
 					BuildValue(sqlDataType, value);
 
@@ -2084,25 +2243,8 @@ namespace LinqToDB.SqlProvider
 				case QueryElementType.SqlExpression:
 					{
 						var e = (SqlExpression)expr;
-						var s = new StringBuilder();
 
-						if (e.Parameters == null || e.Parameters.Length == 0)
-							StringBuilder.Append(e.Expr);
-						else
-						{
-							var values = new object[e.Parameters.Length];
-
-							for (var i = 0; i < values.Length; i++)
-							{
-								var value = e.Parameters[i];
-
-								s.Length = 0;
-								WithStringBuilder(s, () => BuildExpression(GetPrecedence(e), value));
-								values[i] = s.ToString();
-							}
-
-							StringBuilder.AppendFormat(e.Expr, values);
-						}
+						BuildFormatValues(e.Expr, e.Parameters, () => GetPrecedence(e));
 					}
 
 					break;
@@ -2156,6 +2298,46 @@ namespace LinqToDB.SqlProvider
 			}
 
 			return StringBuilder;
+		}
+
+		void BuildFormatValues(string format, IReadOnlyList<ISqlExpression> parameters, Func<int> getPrecedence)
+		{
+			if (parameters == null || parameters.Count == 0)
+				StringBuilder.Append(format);
+			else
+			{
+				StringBuilder s = new StringBuilder();
+				var values = new object[parameters.Count];
+
+				for (var i = 0; i < values.Length; i++)
+				{
+					var value = parameters[i];
+
+					s.Length = 0;
+					WithStringBuilder(s, () => BuildExpression(getPrecedence(), value));
+					values[i] = s.ToString();
+				}
+
+				StringBuilder.AppendFormat(format, values);
+			}
+		}
+
+		string IdentText(string text, int ident)
+		{
+			if (text.IsNullOrEmpty())
+				return text;
+
+	        var strArray = text.Split('\n');
+	        var sb = new StringBuilder();
+			for (var i = 0; i < strArray.Length; i++)
+			{
+				var s = strArray[i];
+				sb.Append('\t', ident).Append(s);
+				if (i < strArray.Length - 1)
+					sb.AppendLine();
+			}
+
+			return sb.ToString();
 		}
 
 		void BuildExpression(int parentPrecedence, ISqlExpression expr, string alias, ref bool addAlias)
@@ -2316,6 +2498,9 @@ namespace LinqToDB.SqlProvider
 				case DataType.Int32  : StringBuilder.Append("Int");      return;
 				case DataType.Int64  : StringBuilder.Append("BigInt");   return;
 				case DataType.Boolean: StringBuilder.Append("Bit");      return;
+				case DataType.Undefined:
+					// give some hint to user that it is expected situation and he need to fix something on his side
+					throw new LinqToDBException("Database type cannot be determined automatically and must be specified explicitly");
 			}
 
 			StringBuilder.Append(type.DataType);
@@ -2389,11 +2574,13 @@ namespace LinqToDB.SqlProvider
 			StringBuilder.AppendLine();
 		}
 
-		protected void AlternativeBuildSql(bool implementOrderBy, Action buildSql)
+		protected void AlternativeBuildSql(bool implementOrderBy, Action buildSql, string emptyOrderByValue)
 		{
 			var selectQuery = Statement.SelectQuery;
 			if (selectQuery != null && NeedSkip(selectQuery))
 			{
+				SkipAlias = false;
+
 				var aliases  = GetTempAliases(2, "t");
 				var rnaliase = GetTempAliases(1, "rn")[0];
 
@@ -2420,7 +2607,11 @@ namespace LinqToDB.SqlProvider
 					if (selectQuery.OrderBy.IsEmpty)
 					{
 						AppendIndent().Append("ORDER BY").AppendLine();
-						BuildAliases(aliases[0], selectQuery.Select.Columns.Take(1).ToList(), null);
+
+						if (selectQuery.Select.Columns.Count > 0)
+							BuildAliases(aliases[0], selectQuery.Select.Columns.Take(1).ToList(), null);
+						else
+							AppendIndent().Append(emptyOrderByValue).AppendLine();
 					}
 					else
 						BuildAlternativeOrderBy(true);
@@ -2559,6 +2750,8 @@ namespace LinqToDB.SqlProvider
 			if (selectQuery == null)
 				return;
 
+			SkipAlias = false;
+
 			AppendIndent().Append("ORDER BY").AppendLine();
 
 			var obys = GetTempAliases(selectQuery.OrderBy.Items.Count, "oby");
@@ -2588,6 +2781,8 @@ namespace LinqToDB.SqlProvider
 		{
 			foreach (var col in columnSelector())
 				yield return col;
+
+			SkipAlias = false;
 
 			var obys = GetTempAliases(selectQuery.OrderBy.Items.Count, "oby");
 
@@ -2825,7 +3020,7 @@ namespace LinqToDB.SqlProvider
 					return GetPhysicalTableName(((SqlTableSource)table).Source, alias);
 
 				case QueryElementType.SqlCteTable:
-					return ((SqlCteTable)table).Name;
+					return GetTablePhysicalName((SqlCteTable)table);
 
 				default:
 					throw new InvalidOperationException();
@@ -2948,9 +3143,9 @@ namespace LinqToDB.SqlProvider
 							{
 								var value = parameter.Value;
 
-								if (value is decimal)
+								if (value is decimal dec)
 								{
-									var d = new SqlDecimal((decimal)value);
+									var d = new SqlDecimal(dec);
 									sb.Append('(').Append(d.Precision).Append(',').Append(d.Scale).Append(')');
 								}
 
@@ -2958,9 +3153,7 @@ namespace LinqToDB.SqlProvider
 							}
 						case DbType.Binary:
 							{
-								var value = parameter.Value as byte[];
-
-								if (value != null)
+								if (parameter.Value is byte[] value)
 									sb.Append('(').Append(value.Length).Append(')');
 
 								break;
@@ -3005,10 +3198,17 @@ namespace LinqToDB.SqlProvider
 
 		public string ApplyQueryHints(string sql, List<string> queryHints)
 		{
-			var sb = new StringBuilder(sql);
+			var sb = new StringBuilder();
 
 			foreach (var hint in queryHints)
-				sb.AppendLine(hint);
+				if (hint?.Length >= 2 && hint.StartsWith("**"))
+					sb.AppendLine(hint.Substring(2));
+
+			sb.Append(sql);
+
+			foreach (var hint in queryHints)
+				if (!(hint?.Length >= 2 && hint.StartsWith("**")))
+					sb.AppendLine(hint);
 
 			return sb.ToString();
 		}

@@ -1,4 +1,7 @@
 ﻿using LinqToDB.Data;
+using LinqToDB.Mapping;
+using LinqToDB.SqlProvider;
+using LinqToDB.SqlQuery;
 using System;
 
 namespace LinqToDB.DataProvider.SqlServer
@@ -14,41 +17,17 @@ namespace LinqToDB.DataProvider.SqlServer
 		{
 		}
 
-		protected override bool BySourceOperationsSupported
-		{
-			get
-			{
-				// SQL Server-only commands
-				return true;
-			}
-		}
+		// SQL Server-only commands
+		protected override bool BySourceOperationsSupported => true;
 
-		protected override bool IsIdentityInsertSupported
-		{
-			get
-			{
-				// SQL Server supports explicit identity insert
-				return true;
-			}
-		}
+		// SQL Server supports explicit identity insert
+		protected override bool IsIdentityInsertSupported => true;
 
-		protected override int MaxOperationsCount
-		{
-			get
-			{
-				// Only 3 operations per command supported
-				return 3;
-			}
-		}
+		// Only 3 operations per command supported
+		protected override int MaxOperationsCount => 3;
 
-		protected override bool SameTypeOperationsAllowed
-		{
-			get
-			{
-				// all operations should have different types
-				return false;
-			}
-		}
+		// all operations should have different types
+		protected override bool SameTypeOperationsAllowed => false;
 
 		protected override void BuildTerminator()
 		{
@@ -70,6 +49,51 @@ namespace LinqToDB.DataProvider.SqlServer
 				// this code should be added before MERGE and command already partially generated at this stage
 				Command.Insert(0, string.Format("SET IDENTITY_INSERT {0} ON{1}", TargetTableName, Environment.NewLine));
 			}
+		}
+
+		protected override void AddSourceValue(
+			ValueToSqlConverter valueConverter,
+			ColumnDescriptor    column,
+			SqlDataType         columnType,
+			object              value,
+			bool                isFirstRow,
+			bool                isLastRow)
+		{
+			if (value != null)
+			{
+				var dataType = columnType.DataType != DataType.Undefined
+					? columnType.DataType
+					: DataContext.MappingSchema.GetDataType(column.MemberType).DataType;
+
+				if (dataType == DataType.Binary || dataType == DataType.VarBinary)
+				{
+					// don't generate binary literal in source, as it could lead to huge SQL
+					AddSourceValueAsParameter(dataType, value);
+					return;
+				}
+			}
+
+			base.AddSourceValue(valueConverter, column, columnType, value, isFirstRow, isLastRow);
+		}
+
+		protected override bool MergeHintsSupported => true;
+
+		protected override void BuildMergeInto()
+		{
+			Command
+				.Append("MERGE INTO ")
+				.Append(TargetTableName)
+				.Append(" ");
+
+			if (Merge.Hint != null)
+			{
+				Command
+					.Append("WITH(")
+					.Append(Merge.Hint)
+					.Append(") ");
+			}
+
+			Command.AppendLine((string)SqlBuilder.Convert(TargetAlias, ConvertType.NameToQueryTableAlias));
 		}
 	}
 }

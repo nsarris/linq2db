@@ -6,19 +6,19 @@ namespace LinqToDB.SqlQuery
 {
 	public class SqlDropTableStatement : SqlStatement
 	{
-		public SqlTable       Table           { get; set; }
+		public SqlTable Table { get; set; }
 
-		public override QueryType          QueryType    => QueryType.DropTable;
-		public override QueryElementType   ElementType  => QueryElementType.DropTableStatement;
+		public override QueryType        QueryType    => QueryType.DropTable;
+		public override QueryElementType ElementType  => QueryElementType.DropTableStatement;
 
-		public override bool               IsParameterDependent
+		public override bool             IsParameterDependent
 		{
 			get => false;
 			set {}
 		}
 
 		public override SelectQuery SelectQuery { get => null; set {}}
-		
+
 		public override StringBuilder ToString(StringBuilder sb, Dictionary<IQueryElement, IQueryElement> dic)
 		{
 			sb.Append("DROP TABLE ");
@@ -66,6 +66,5 @@ namespace LinqToDB.SqlQuery
 					SelectQuery = newQuery;
 			}
 		}
-
 	}
 }

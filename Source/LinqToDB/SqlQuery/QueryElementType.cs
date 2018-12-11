@@ -44,6 +44,7 @@ namespace LinqToDB.SqlQuery
 		WithClause,
 		CteClause,
 		SqlCteTable,
+		SqlRawSqlTable,
 
 		SelectStatement,
 		InsertStatement,
@@ -53,5 +54,6 @@ namespace LinqToDB.SqlQuery
 
 		CreateTableStatement,
 		DropTableStatement,
+		TruncateTableStatement,
 	}
 }

@@ -402,8 +402,11 @@ namespace Tests.Linq
 					from t in db.Types select Sql.Convert(Sql.Date, t.DateTimeValue.Year + "-01-01"));
 		}
 
+		// needs debugging, but suspect it fails due to issue 730
+		[ActiveIssue(730, Configuration = ProviderName.Sybase, SkipForNonLinqService = true)]
+		[ActiveIssue(730, Configuration = ProviderName.SybaseManaged, SkipForNonLinqService = true)]
 		[Test, DataContextSource(ProviderName.SQLiteClassic, ProviderName.SQLiteMS
-			, ProviderName.Access, ProviderName.Sybase ///////// TODO
+			, ProviderName.Access
 			)]
 		public void ToSqlTime(string context)
 		{
@@ -458,8 +461,13 @@ namespace Tests.Linq
 					from t in db.Types select Sql.Convert(Sql.Char(20), t.MoneyValue).ToInvariantString());
 		}
 
-		[Test, DataContextSource(ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.Firebird, TestProvName.Firebird3, ProviderName.PostgreSQL)]
-		public void ToDefaultChar(string context)
+		[Test]
+		public void ToDefaultChar(
+			[DataSources(
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
@@ -494,8 +502,13 @@ namespace Tests.Linq
 					from t in db.Types select Sql.Convert(Sql.NChar(20), t.MoneyValue).ToInvariantString());
 		}
 
-		[Test, DataContextSource(ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.Firebird, TestProvName.Firebird3, TestProvName.Firebird3, ProviderName.PostgreSQL)]
-		public void ToDefaultNChar(string context)
+		[Test]
+		public void ToDefaultNChar(
+			[DataSources(
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest)]
+		string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(

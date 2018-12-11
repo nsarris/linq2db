@@ -5,6 +5,7 @@ namespace LinqToDB.DataProvider.Informix
 	using Extensions;
 	using SqlProvider;
 	using SqlQuery;
+	using System.Data.Linq;
 
 	class InformixSqlOptimizer : BasicSqlOptimizer
 	{
@@ -22,28 +23,42 @@ namespace LinqToDB.DataProvider.Informix
 			}
 		}
 
+		static void EnforceBinaryParameters(IQueryElement element)
+		{
+			if (element.ElementType == QueryElementType.SqlParameter)
+			{
+				var p = (SqlParameter)element;
+				if (p.SystemType == typeof(byte[]) || p.SystemType == typeof(Binary))
+					p.IsQueryParameter = true;
+			}
+		}
+
 		public override SqlStatement Finalize(SqlStatement statement)
 		{
 			CheckAliases(statement, int.MaxValue);
 
-			var selectQuery = statement.SelectQuery;
-			if (selectQuery != null)
+			statement.WalkQueries(selectQuery =>
 			{
-				new QueryVisitor().Visit(selectQuery.Select, SetQueryParameter);
+				new QueryVisitor().Visit(selectQuery, SetQueryParameter);
+				return selectQuery;
+			});
 
-				statement = base.Finalize(statement);
+			new QueryVisitor().VisitAll(statement, EnforceBinaryParameters);
 
-				switch (statement.QueryType)
-				{
-					case QueryType.Delete:
-						statement = GetAlternativeDelete((SqlDeleteStatement)statement);
-						selectQuery.From.Tables[0].Alias = "$";
-						break;
+			statement = base.Finalize(statement);
 
-					case QueryType.Update:
-						statement = GetAlternativeUpdate((SqlUpdateStatement)statement);
-						break;
-				}
+			switch (statement.QueryType)
+			{
+				case QueryType.Delete:
+					var deleteStatement = GetAlternativeDelete((SqlDeleteStatement)statement);
+					statement = deleteStatement;
+					if (deleteStatement.SelectQuery != null)
+						deleteStatement.SelectQuery.From.Tables[0].Alias = "$";
+					break;
+
+				case QueryType.Update:
+					statement = GetAlternativeUpdate((SqlUpdateStatement)statement);
+					break;
 			}
 
 			return statement;

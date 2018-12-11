@@ -94,7 +94,7 @@ namespace LinqToDB.DataProvider.DB2
 
 						TraceAction(
 							dataConnection,
-							"INSERT BULK " + tableName + Environment.NewLine,
+							() => "INSERT BULK " + tableName + Environment.NewLine,
 							() => { dbc.WriteToServer(rd); return rd.Count; });
 					}
 
@@ -116,9 +116,9 @@ namespace LinqToDB.DataProvider.DB2
 		protected override BulkCopyRowsCopied MultipleRowsCopy<T>(DataConnection dataConnection, BulkCopyOptions options, IEnumerable<T> source)
 		{
 			if (((DB2DataProvider)dataConnection.DataProvider).Version == DB2Version.zOS)
-				return MultipleRowsCopy2(dataConnection, options, false, source, " FROM SYSIBM.SYSDUMMY1");
+				return MultipleRowsCopy2(dataConnection, options, source, " FROM SYSIBM.SYSDUMMY1");
 
-			return MultipleRowsCopy1(dataConnection, options, false, source);
+			return MultipleRowsCopy1(dataConnection, options, source);
 		}
 	}
 }

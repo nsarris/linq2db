@@ -20,12 +20,34 @@ namespace LinqToDB.DataProvider.Informix
 
 		public override int CommandCount(SqlStatement statement)
 		{
+			if (statement is SqlTruncateTableStatement trun)
+				return trun.ResetIdentity ? 1 + trun.Table.Fields.Values.Count(f => f.IsIdentity) : 1;
 			return statement.NeedsIdentity() ? 2 : 1;
 		}
 
-		protected override void BuildCommand(int commandNumber)
+		protected override void BuildCommand(SqlStatement statement, int commandNumber)
 		{
-			StringBuilder.AppendLine("SELECT DBINFO('sqlca.sqlerrd1') FROM systables where tabid = 1");
+			if (statement is SqlTruncateTableStatement trun)
+			{
+				var field = trun.Table.Fields.Values.Skip(commandNumber - 1).First(f => f.IsIdentity);
+
+				StringBuilder.Append("ALTER TABLE ");
+				ConvertTableName(StringBuilder, trun.Table.Database, trun.Table.Schema, trun.Table.PhysicalName);
+				StringBuilder
+					.Append(" MODIFY ")
+					.Append(Convert(field.PhysicalName, ConvertType.NameToQueryField))
+					.AppendLine(" SERIAL(1)")
+					;
+			}
+			else
+			{
+				StringBuilder.AppendLine("SELECT DBINFO('sqlca.sqlerrd1') FROM systables where tabid = 1");
+			}
+		}
+
+		protected override void BuildTruncateTable(SqlTruncateTableStatement truncateTable)
+		{
+			StringBuilder.Append("TRUNCATE TABLE ");
 		}
 
 		protected override ISqlBuilder CreateSqlBuilder()
@@ -99,18 +121,18 @@ namespace LinqToDB.DataProvider.Informix
 		{
 			switch (type.DataType)
 			{
-				case DataType.VarBinary  : StringBuilder.Append("BYTE");                      break;
-				case DataType.Boolean    : StringBuilder.Append("BOOLEAN");                   break;
-				case DataType.DateTime   : StringBuilder.Append("datetime year to second");   break;
-				case DataType.DateTime2  : StringBuilder.Append("datetime year to fraction"); break;
+				case DataType.VarBinary  : StringBuilder.Append("BYTE");                      return;
+				case DataType.Boolean    : StringBuilder.Append("BOOLEAN");                   return;
+				case DataType.DateTime   : StringBuilder.Append("datetime year to second");   return;
+				case DataType.DateTime2  : StringBuilder.Append("datetime year to fraction"); return;
 				case DataType.Time       :
 					StringBuilder.Append("INTERVAL HOUR TO FRACTION");
 					StringBuilder.AppendFormat("({0})", (type.Length ?? 5).ToString(CultureInfo.InvariantCulture));
-					break;
-				case DataType.Date       : StringBuilder.Append("DATETIME YEAR TO DAY");      break;
+					return;
+				case DataType.Date       : StringBuilder.Append("DATETIME YEAR TO DAY");      return;
 				case DataType.SByte      :
-				case DataType.Byte       : StringBuilder.Append("SmallInt");                  break;
-				case DataType.SmallMoney : StringBuilder.Append("Decimal(10,4)");             break;
+				case DataType.Byte       : StringBuilder.Append("SmallInt");                  return;
+				case DataType.SmallMoney : StringBuilder.Append("Decimal(10,4)");             return;
 				case DataType.Decimal    :
 					StringBuilder.Append("Decimal");
 					if (type.Precision != null && type.Scale != null)
@@ -118,9 +140,20 @@ namespace LinqToDB.DataProvider.Informix
 							"({0}, {1})",
 							type.Precision.Value.ToString(CultureInfo.InvariantCulture),
 							type.Scale.Value.ToString(CultureInfo.InvariantCulture));
+					return;
+				case DataType.NVarChar:
+					if (type.Length == null || type.Length > 255 || type.Length < 1)
+					{
+						StringBuilder
+							.Append(type.DataType)
+							.Append("(255)");
+						return;
+					}
+
 					break;
-				default                  : base.BuildDataType(type, createDbType);            break;
 			}
+
+			base.BuildDataType(type, createDbType);
 		}
 
 		protected override void BuildFromClause(SqlStatement statement, SelectQuery selectQuery)
@@ -129,10 +162,43 @@ namespace LinqToDB.DataProvider.Informix
 				base.BuildFromClause(statement, selectQuery);
 		}
 
+		/// <summary>
+		/// Check if identifier is valid without quotation. Expects non-zero length string as input.
+		/// </summary>
+		private bool IsValidIdentifier(string name)
+		{
+			// https://www.ibm.com/support/knowledgecenter/en/SSGU8G_12.1.0/com.ibm.sqls.doc/ids_sqs_1660.htm
+			// TODO: add informix-specific reserved words list
+			// TODO: Letter definitions is: In the default locale, must be an ASCII character in the range A to Z or a to z
+			// add support for other locales later
+			return !IsReserved(name) &&
+				((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z') || name[0] == '_') &&
+				name.All(c =>
+					(c >= 'a' && c <= 'z') ||
+					(c >= 'A' && c <= 'Z') ||
+					(c >= '0' && c <= '9') ||
+					c == '$' ||
+					c == '_');
+		}
+
 		public override object Convert(object value, ConvertType convertType)
 		{
 			switch (convertType)
 			{
+				case ConvertType.NameToQueryFieldAlias:
+				case ConvertType.NameToQueryField:
+				case ConvertType.NameToQueryTable:
+					if (value != null)
+					{
+						var name = value.ToString();
+						if (name.Length > 0 && !IsValidIdentifier(name))
+						{
+							// I wonder what to do if identifier has " in name?
+							return '"' + name + '"';
+						}
+					}
+
+					break;
 				case ConvertType.NameToQueryParameter   : return "?";
 				case ConvertType.NameToCommandParameter :
 				case ConvertType.NameToSprocParameter   : return ":" + value;

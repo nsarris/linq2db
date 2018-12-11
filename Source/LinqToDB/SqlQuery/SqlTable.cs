@@ -7,6 +7,8 @@ using System.Threading;
 
 namespace LinqToDB.SqlQuery
 {
+	using LinqToDB.Common;
+	using LinqToDB.Data;
 	using Mapping;
 
 	public class SqlTable : ISqlTableSource
@@ -58,7 +60,7 @@ namespace LinqToDB.SqlQuery
 
 		#region Init from type
 
-		public SqlTable([JetBrains.Annotations.NotNull] MappingSchema mappingSchema, Type objectType) : this()
+		public SqlTable([JetBrains.Annotations.NotNull] MappingSchema mappingSchema, Type objectType, string physicalName = null) : this()
 		{
 			if (mappingSchema == null) throw new ArgumentNullException(nameof(mappingSchema));
 
@@ -68,7 +70,7 @@ namespace LinqToDB.SqlQuery
 			Schema       = ed.SchemaName;
 			Name         = ed.TableName;
 			ObjectType   = objectType;
-			PhysicalName = Name;
+			PhysicalName = physicalName ?? Name;
 
 			foreach (var column in ed.Columns)
 			{
@@ -89,6 +91,7 @@ namespace LinqToDB.SqlQuery
 					Precision        = column.Precision,
 					Scale            = column.Scale,
 					CreateFormat     = column.CreateFormat,
+					CreateOrder      = column.Order,
 					ColumnDescriptor = column,
 				};
 
@@ -108,6 +111,24 @@ namespace LinqToDB.SqlQuery
 					}
 
 					field.DataType = dataType.DataType;
+
+					// try to get type from converter
+					if (field.DataType == DataType.Undefined)
+					{
+						try
+						{
+							var converter = mappingSchema.GetConverter(field.SystemType, typeof(DataParameter), true);
+							if (converter != null && converter.ConvertValueToParameter != null)
+							{
+								var parameter = converter.ConvertValueToParameter(DefaultValue.GetValue(field.SystemType, mappingSchema));
+								field.DataType = parameter.DataType;
+							}
+						}
+						catch
+						{
+							// converter cannot handle default value?
+						}
+					}
 
 					if (field.Length == null)
 						field.Length = dataType.Length;
@@ -200,7 +221,7 @@ namespace LinqToDB.SqlQuery
 		public         string           Database       { get; set; }
 		public         string           Schema         { get; set; }
 		public         Type             ObjectType     { get; set; }
-		public         string           PhysicalName   { get; set; }
+		public virtual string           PhysicalName   { get; set; }
 		public virtual SqlTableType     SqlTableType   { get; set; }
 		public         ISqlExpression[] TableArguments { get; set; }
 

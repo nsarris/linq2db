@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using NUnit.Framework;
@@ -23,6 +24,12 @@ namespace Tests
 
 		readonly bool     _includeLinqService;
 		readonly string[] _providerNames;
+
+		public static bool NoLinqService;
+
+		internal const string ProviderProperty      = "linq2db.provider";
+		internal const string ConfigurationProperty = "linq2db.configuration";
+		internal const string IsLinqServiceProperty = "linq2db.is.wcf";
 
 		static void SetName(TestMethod test, IMethodInfo method, string provider, bool isLinqService, int caseNumber, string baseName)
 		{
@@ -55,25 +62,40 @@ namespace Tests
 			return Order;
 		}
 
-		protected virtual IEnumerable<Tuple<object[], string>> GetParameters(string provider)
+		protected virtual IEnumerable<Tuple<object[],string>> GetParameters(string provider)
 		{
 			yield return Tuple.Create(new object[] {provider}, (string)null);
 		}
 
 		public IEnumerable<TestMethod> BuildFrom(IMethodInfo method, Test suite)
 		{
-			var explic = method.GetCustomAttributes<ExplicitAttribute>(true)
+			// pick attributes that we want to apply to each configuration-specific test case
+			var testAttributes = method.GetCustomAttributes<ExplicitAttribute>(true)
 				.Cast<IApplyToTest>()
+				.Union(method.TypeInfo.GetCustomAttributes<ExplicitAttribute>(true))
+#if !NETSTANDARD1_6
+				.Union(method.TypeInfo.Assembly.GetCustomAttributes(true).OfType<ExplicitAttribute>())
+#endif
 				.Union(method.GetCustomAttributes<IgnoreAttribute>(true))
+				.Union(method.TypeInfo.GetCustomAttributes<IgnoreAttribute>(true))
+#if !NETSTANDARD1_6
+				.Union(method.TypeInfo.Assembly.GetCustomAttributes(true).OfType<IgnoreAttribute>())
+#endif
+				.Union(method.GetCustomAttributes<ActiveIssueAttribute>(true))
+				.Union(method.TypeInfo.GetCustomAttributes<ActiveIssueAttribute>(true))
 				.ToList();
 
 			var maxTime = method.GetCustomAttributes<MaxTimeAttribute>(true).FirstOrDefault();
-			explic.Add(maxTime ?? new MaxTimeAttribute(10000));
+			testAttributes.Add(maxTime ?? new MaxTimeAttribute(10000));
 
 //#if !NETSTANDARD1_6
 //				var timeout = method.GetCustomAttributes<TimeoutAttribute>(true).FirstOrDefault();
 //				explic.Add(timeout ?? new TimeoutAttribute(10000));
 //#endif
+
+			var skipAttrs = method.GetCustomAttributes<SkipCategoryAttribute>(true)
+				.Where(a => a.ProviderName != null)
+				.ToDictionary(a => a.ProviderName, a => a.Category);
 
 			var builder = new NUnitTestCaseBuilder();
 
@@ -82,21 +104,30 @@ namespace Tests
 
 			foreach (var provider in _providerNames)
 			{
-				var isIgnore = !TestBase.UserProviders.Contains(provider);
-
+				var isIgnore   = !TestBase.UserProviders.Contains(provider);
 				var caseNumber = 0;
+
+				if (!isIgnore)
+					if (skipAttrs.TryGetValue(provider, out var category))
+						isIgnore = TestBase.SkipCategories.Contains(category);
+
 				foreach (var parameters in GetParameters(provider))
 				{
 					var data = new TestCaseParameters(parameters.Item1);
 
 					test = builder.BuildTestMethod(method, suite, data);
 
-					foreach (var attr in explic)
+					test.Properties.Set(ProviderProperty,      provider);
+					test.Properties.Set(ConfigurationProperty, provider);
+					test.Properties.Set(IsLinqServiceProperty, false);
+
+					foreach (var attr in testAttributes)
 						attr.ApplyToTest(test);
 
 					test.Properties.Set(PropertyNames.Order,         GetOrder(method));
 					//test.Properties.Set(PropertyNames.ParallelScope, ParallelScope);
-					test.Properties.Set(PropertyNames.Category,      provider);
+
+					test.Properties.Add(PropertyNames.Category,      provider);
 
 					SetName(test, method, provider, false, caseNumber++, parameters.Item2);
 
@@ -106,13 +137,14 @@ namespace Tests
 							test.RunState = RunState.Ignored;
 
 #if !APPVEYOR && !TRAVIS
-						test.Properties.Set(PropertyNames.SkipReason, "Provider is disabled. See UserDataProviders.json or DataProviders.json");
+						if (!test.Properties.ContainsKey(PropertyNames.SkipReason))
+							test.Properties.Set(PropertyNames.SkipReason, "Provider is disabled. See UserDataProviders.json or DataProviders.json");
 #endif
 						continue;
 					}
 
 					if (test.RunState != RunState.Runnable)
-						test.Properties.Set(PropertyNames.Category, "Ignored");
+						test.Properties.Add(PropertyNames.Category, "Ignored");
 
 					hasTest = true;
 					yield return test;
@@ -120,21 +152,26 @@ namespace Tests
 				}
 
 #if !NETSTANDARD1_6 && !NETSTANDARD2_0 && !MONO
-				if (!isIgnore && _includeLinqService)
+				if (!isIgnore && _includeLinqService && !NoLinqService)
 				{
 					var linqCaseNumber = 0;
+					var providerBase = provider;
 					foreach (var parameters in GetParameters(provider + ".LinqService"))
 					{
 
 						var data = new TestCaseParameters(parameters.Item1);
 						test = builder.BuildTestMethod(method, suite, data);
 
-						foreach (var attr in explic)
+						test.Properties.Set(ProviderProperty,      providerBase);
+						test.Properties.Set(ConfigurationProperty, provider);
+						test.Properties.Set(IsLinqServiceProperty, true);
+
+						foreach (var attr in testAttributes)
 							attr.ApplyToTest(test);
 
 						test.Properties.Set(PropertyNames.Order,         GetOrder(method));
 						test.Properties.Set(PropertyNames.ParallelScope, ParallelScope);
-						test.Properties.Set(PropertyNames.Category,      provider);
+						test.Properties.Add(PropertyNames.Category,      provider);
 
 						SetName(test, method, provider, true, linqCaseNumber++, parameters.Item2);
 

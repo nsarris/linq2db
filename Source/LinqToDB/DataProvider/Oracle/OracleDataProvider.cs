@@ -32,6 +32,8 @@ namespace LinqToDB.DataProvider.Oracle
 			//SqlProviderFlags.IsCountSubQuerySupported    = false;
 			SqlProviderFlags.IsIdentityParameterRequired       = true;
 			SqlProviderFlags.IsCommonTableExpressionsSupported = true;
+			SqlProviderFlags.IsSubQueryOrderBySupported        = true;
+			SqlProviderFlags.IsDistinctOrderBySupported        = false;
 
 			SqlProviderFlags.MaxInListValuesCount = 1000;
 
@@ -65,6 +67,9 @@ namespace LinqToDB.DataProvider.Oracle
 		Type _oracleXmlType;
 		Type _oracleXmlStream;
 
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+		public override string DbFactoryProviderName => Name == ProviderName.OracleNative ? "Oracle.DataAccess.Client" : null;
+#endif
 		protected override void OnConnectionTypeCreated(Type connectionType)
 		{
 			var typesNamespace  = AssemblyName + ".Types.";
@@ -337,6 +342,8 @@ namespace LinqToDB.DataProvider.Oracle
 			_setDateTimeOffset = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "TimeStampTZ");
 			_setGuid           = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "Raw");
 			_setCursor         = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "RefCursor");
+			_setNVarchar2      = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "NVarchar2");
+			_setVarchar2       = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "Varchar2");
 
 			MappingSchema.AddScalarType(_oracleBFile,        GetNullValue(_oracleBFile),        true, DataType.VarChar);    // ?
 			MappingSchema.AddScalarType(_oracleBinary,       GetNullValue(_oracleBinary),       true, DataType.VarBinary);
@@ -394,9 +401,9 @@ namespace LinqToDB.DataProvider.Oracle
 
 		public string AssemblyName => Name == ProviderName.OracleNative ? "Oracle.DataAccess" : "Oracle.ManagedDataAccess";
 
-		public    override string ConnectionNamespace => $"{AssemblyName}.Client";
-		protected override string ConnectionTypeName  => $"{AssemblyName}.Client.OracleConnection, {AssemblyName}";
-		protected override string DataReaderTypeName  => $"{AssemblyName}.Client.OracleDataReader, {AssemblyName}";
+		public    override string ConnectionNamespace               => $"{AssemblyName}.Client";
+		protected override string ConnectionTypeName                => $"{AssemblyName}.Client.OracleConnection, {AssemblyName}";
+		protected override string DataReaderTypeName                => $"{AssemblyName}.Client.OracleDataReader, {AssemblyName}";
 
 		public             bool   IsXmlTypeSupported  => _oracleXmlType != null;
 
@@ -542,6 +549,8 @@ namespace LinqToDB.DataProvider.Oracle
 		Action<IDbDataParameter> _setDateTimeOffset;
 		Action<IDbDataParameter> _setGuid;
 		Action<IDbDataParameter> _setCursor;
+		Action<IDbDataParameter> _setNVarchar2;
+		Action<IDbDataParameter> _setVarchar2;
 
 		protected override void SetParameterType(IDbDataParameter parameter, DataType dataType)
 		{
@@ -569,6 +578,8 @@ namespace LinqToDB.DataProvider.Oracle
 				case DataType.DateTimeOffset : _setDateTimeOffset   (parameter);           break;
 				case DataType.Guid           : _setGuid             (parameter);           break;
 				case DataType.Cursor         : _setCursor           (parameter);           break;
+				case DataType.NVarChar       : _setNVarchar2        (parameter);           break;
+				case DataType.VarChar        : _setVarchar2         (parameter);           break;
 				default                      : base.SetParameterType(parameter, dataType); break;
 			}
 		}

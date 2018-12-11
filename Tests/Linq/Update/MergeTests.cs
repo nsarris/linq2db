@@ -44,6 +44,10 @@ namespace Tests.xUpdate
 				ProviderName.PostgreSQL,
 				ProviderName.PostgreSQL92,
 				ProviderName.PostgreSQL93,
+				ProviderName.PostgreSQL95,
+				TestProvName.PostgreSQL10,
+				TestProvName.PostgreSQL11,
+				TestProvName.PostgreSQLLatest,
 				ProviderName.MySql,
 				TestProvName.MySql57,
 				TestProvName.MariaDB
@@ -61,9 +65,10 @@ namespace Tests.xUpdate
 			static string[] Supported = new[]
 			{
 				ProviderName.Sybase,
-					  ProviderName.SqlServer2008,
-					  ProviderName.SqlServer2012,
-					  ProviderName.SqlServer2014
+				ProviderName.SybaseManaged,
+				ProviderName.SqlServer2008,
+				ProviderName.SqlServer2012,
+				ProviderName.SqlServer2014
 			};
 
 			public IdentityInsertMergeDataContextSourceAttribute(params string[] except)
@@ -137,17 +142,17 @@ namespace Tests.xUpdate
 		}
 
 		private static ITable<TestMapping1> GetTarget(IDataContext db)
-			{
+		{
 			return db.GetTable<TestMapping1>().TableName("TestMerge1");
 		}
 
 		private static ITable<TestMapping1> GetSource1(IDataContext db)
-			{
+		{
 			return db.GetTable<TestMapping1>().TableName("TestMerge2");
 		}
 
 		private static ITable<TestMapping2> GetSource2(IDataContext db)
-			{
+		{
 			return db.GetTable<TestMapping2>().TableName("TestMerge2");
 		}
 
@@ -196,9 +201,9 @@ namespace Tests.xUpdate
 		};
 
 		private static IEnumerable<TestMapping2> GetInitialSourceData2()
-				{
+		{
 			foreach (var record in InitialSourceData)
-					{
+			{
 				yield return new TestMapping2()
 						{
 					OtherId = record.Id,
@@ -209,8 +214,8 @@ namespace Tests.xUpdate
 					OtherField5 = record.Field5,
 					OtherFake = record.Fake
 				};
-						}
-				}
+			}
+		}
 
 		[Test, DataContextSource(false)]
 		public void TestDataGenerationTest(string context)
@@ -219,7 +224,7 @@ namespace Tests.xUpdate
 			{
 				PrepareData(db);
 
-				var result1 = GetTarget(db).OrderBy(_ => _.Id).ToList();
+				var result1 = GetTarget(db). OrderBy(_ => _.Id).ToList();
 				var result2 = GetSource1(db).OrderBy(_ => _.Id).ToList();
 
 				Assert.AreEqual(4, result1.Count);
@@ -240,7 +245,7 @@ namespace Tests.xUpdate
 		private void AssertRowCount(int expected, int actual, string context)
 		{
 			// another sybase quirk, nothing surprising
-			if (context == ProviderName.Sybase)
+			if (context == ProviderName.Sybase || context == ProviderName.SybaseManaged)
 				Assert.LessOrEqual(expected, actual);
 			else if (context == ProviderName.OracleNative && actual == -1)
 			{ }

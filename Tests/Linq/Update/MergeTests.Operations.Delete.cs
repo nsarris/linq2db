@@ -13,7 +13,7 @@ namespace Tests.xUpdate
 	public partial class MergeTests
 	{
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			ProviderName.Sybase, ProviderName.SapHana, ProviderName.Firebird, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.SapHana, ProviderName.Firebird, ProviderName.Firebird)]
 		public void SameSourceDelete(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -41,7 +41,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void SameSourceDeleteWithPredicate(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -70,7 +70,59 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.Sybase, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.SqlServer2014,
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+		public void DeletePartialSourceProjection_KnownFieldInCondition(string context)
+		{
+			using (var db = new TestDataConnection(context))
+			{
+				PrepareData(db);
+
+				var table = GetTarget(db);
+
+				var rows = table
+					.Merge()
+					.Using(GetSource1(db).Select(s => new TestMapping1() {  Id = s.Id }))
+					.OnTargetKey()
+					.DeleteWhenMatchedAnd((t, s) => s.Id == 4)
+					.Merge();
+
+				var result = table.OrderBy(_ => _.Id).ToList();
+
+				AssertRowCount(1, rows, context);
+
+				Assert.AreEqual(3, result.Count);
+
+				AssertRow(InitialTargetData[0], result[0], null, null);
+				AssertRow(InitialTargetData[1], result[1], null, null);
+				AssertRow(InitialTargetData[2], result[2], null, 203);
+			}
+		}
+
+		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+		public void DeleteWithPredicatePartialSourceProjection_UnknownFieldInCondition(string context)
+		{
+			using (var db = new TestDataConnection(context))
+			{
+				PrepareData(db);
+
+				var table = GetTarget(db);
+
+				var exception = Assert.Catch(
+					() => table
+					.Merge()
+					.Using(GetSource1(db).Select(_ => new TestMapping1() { Id = _.Id, Field1 = _.Field1 }))
+					.OnTargetKey()
+					.DeleteWhenMatchedAnd((t, s) => s.Field2 == 4)
+					.Merge());
+
+				Assert.IsInstanceOf<LinqToDBException>(exception);
+				Assert.AreEqual("Column Field2 doesn't exist in source", exception.Message);
+			}
+		}
+
+		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.SqlServer2014,
 			TestProvName.SqlAzure, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void SameSourceDeleteWithPredicateDelete(string context)
 		{
@@ -100,7 +152,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			ProviderName.Sybase, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.SapHana, ProviderName.Firebird)]
 		public void OtherSourceDelete(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -128,8 +180,31 @@ namespace Tests.xUpdate
 			}
 		}
 
+		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.SapHana, ProviderName.Firebird)]
+		public void OtherSourceDeletePartialSourceProjection_UnknownFieldInMatch(string context)
+		{
+			using (var db = new TestDataConnection(context))
+			{
+				PrepareData(db);
+
+				var table = GetTarget(db);
+
+				var exception = Assert.Catch(
+					() => table
+					.Merge()
+					.Using(GetSource1(db).Select(_ => new TestMapping1() { Id = _.Id, Field1 = _.Field1 }))
+					.On((t, s) => s.Field2 == 3)
+					.DeleteWhenMatched()
+					.Merge());
+
+				Assert.IsInstanceOf<LinqToDBException>(exception);
+				Assert.AreEqual("Column Field2 doesn't exist in source", exception.Message);
+			}
+		}
+
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void OtherSourceDeleteWithPredicate(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -158,7 +233,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void AnonymousSourceDeleteWithPredicate(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -196,7 +271,7 @@ namespace Tests.xUpdate
 
 		// Oracle: implicit Delete to UpdateWithDelete conversion failed here
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void AnonymousListSourceDeleteWithPredicate(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -233,7 +308,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void DeleteReservedAndCaseNames(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -270,7 +345,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.Sybase, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
+			ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.Informix, ProviderName.SapHana, ProviderName.Firebird)]
 		public void DeleteReservedAndCaseNamesFromList(string context)
 		{
 			using (var db = new TestDataConnection(context))
@@ -303,6 +378,28 @@ namespace Tests.xUpdate
 				AssertRow(InitialTargetData[0], result[0], null, null);
 				AssertRow(InitialTargetData[1], result[1], null, null);
 				AssertRow(InitialTargetData[2], result[2], null, 203);
+			}
+		}
+
+		[Test, MergeDataContextSource(ProviderName.Oracle, ProviderName.OracleNative, ProviderName.OracleManaged, ProviderName.Sybase, ProviderName.SybaseManaged, ProviderName.SapHana)]
+		public void DeleteFromPartialSourceProjection_MissingKeyField(string context)
+		{
+			using (var db = new TestDataConnection(context))
+			{
+				PrepareData(db);
+
+				var table = GetTarget(db);
+
+				var exception = Assert.Catch(
+					() => table
+						.Merge()
+						.Using(table.Select(_ => new TestMapping1() { Field1 = _.Field1 }))
+						.OnTargetKey()
+						.DeleteWhenMatched()
+						.Merge());
+
+				Assert.IsInstanceOf<LinqToDBException>(exception);
+				Assert.AreEqual("Column Id doesn't exist in source", exception.Message);
 			}
 		}
 	}

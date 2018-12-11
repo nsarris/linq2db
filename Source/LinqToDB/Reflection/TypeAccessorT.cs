@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using LinqToDB.Mapping;
 
 namespace LinqToDB.Reflection
 {
-	using Common;
 	using Extensions;
 
 	public class TypeAccessor<T> : TypeAccessor
@@ -19,7 +19,7 @@ namespace LinqToDB.Reflection
 
 			if (type.IsValueTypeEx())
 			{
-				_createInstance = () => default(T);
+				_createInstance = () => default;
 			}
 			else
 			{
@@ -42,11 +42,7 @@ namespace LinqToDB.Reflection
 				}
 			}
 
-			foreach (var memberInfo in type.GetPublicInstanceMembersEx())
-			{
-				if (memberInfo.IsFieldEx() || memberInfo.IsPropertyEx() && ((PropertyInfo)memberInfo).GetIndexParameters().Length == 0)
-					_members.Add(memberInfo);
-			}
+			_members.AddRange(type.GetPublicInstanceValueMembers());
 
 			// Add explicit interface implementation properties support
 			// Or maybe we should support all private fields/properties?
@@ -94,6 +90,13 @@ namespace LinqToDB.Reflection
 
 		internal TypeAccessor()
 		{
+			// set DynamicColumnStoreAccessor
+			var columnStoreProperty = typeof(T).GetMembers().FirstOrDefault(m => m.GetCustomAttributes<DynamicColumnsStoreAttribute>().Any());
+
+			if (columnStoreProperty != null)
+				DynamicColumnsStoreAccessor = new MemberAccessor(this, columnStoreProperty);
+
+			// init members
 			foreach (var member in _members)
 				AddMember(new MemberAccessor(this, member));
 
@@ -112,5 +115,8 @@ namespace LinqToDB.Reflection
 		}
 
 		public override Type Type { get { return typeof(T); } }
+
+		/// <inheritdoc cref="TypeAccessor.DynamicColumnsStoreAccessor"/>
+		public override MemberAccessor DynamicColumnsStoreAccessor { get; }
 	}
 }

@@ -11,7 +11,7 @@ namespace LinqToDB.Mapping
 	/// In latter case you should specify member name using <see cref="MemberName"/> property.
 	/// </summary>
 	[AttributeUsage(
-		AttributeTargets.Field | AttributeTargets.Property| AttributeTargets.Class | AttributeTargets.Interface,
+		AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Class | AttributeTargets.Interface,
 		AllowMultiple = true, Inherited = true)]
 	public class ColumnAttribute : Attribute
 	{
@@ -79,6 +79,7 @@ namespace LinqToDB.Mapping
 			if (ca.HasLength())       Length       = ca.Length;
 			if (ca.HasPrecision())    Precision    = ca.Precision;
 			if (ca.HasScale())        Scale        = ca.Scale;
+			if (ca.HasOrder())        Order        = ca.Order;
 		}
 
 		/// <summary>
@@ -98,9 +99,10 @@ namespace LinqToDB.Mapping
 		/// Gets or sets the name of mapped member.
 		/// When applied to class or interface, should contain name of property of field.
 		///
-		/// If column is mapped to a property or field of composite object, <see cref="MemberName"/> should contain a path to that
+		/// If column mapped to a property or field of composite object, <see cref="MemberName"/> should contain a path to that
 		/// member using dot as separator.
 		/// <example>
+		/// <code>
 		/// public class Address
 		/// {
 		///     public string City     { get; set; }
@@ -108,7 +110,7 @@ namespace LinqToDB.Mapping
 		///     public int    Building { get; set; }
 		/// }
 		///
-		/// [Column("city", "Residence.Street")]
+		/// [Column("city", "Residence.City")]
 		/// [Column("user_name", "Name")]
 		/// public class User
 		/// {
@@ -118,6 +120,7 @@ namespace LinqToDB.Mapping
 		///     [Column("building_number", MemberName = ".Building")]
 		///     public Address Residence { get; set; }
 		/// }
+		/// </code>
 		/// </example>
 		/// </summary>
 		public string MemberName { get; set; }
@@ -177,7 +180,7 @@ namespace LinqToDB.Mapping
 		/// <summary>
 		/// Gets or sets whether a column is updatable.
 		/// This flag will affect only update operations with implicit columns specification like
-		/// <see cref="DataExtensions.Update{T}(IDataContext, T)"/>
+		/// <see cref="DataExtensions.Update{T}(IDataContext, T, string, string, string )"/>
 		/// method and will be ignored when user explicitly specifies value for this column.
 		/// </summary>
 		public bool   SkipOnUpdate
@@ -309,5 +312,25 @@ namespace LinqToDB.Mapping
 		/// - {3} - identity specification.
 		/// </summary>
 		public string CreateFormat { get; set; }
+
+		private int? _order;
+		/// <summary>
+		/// Specifies the order of the field in table creation.
+		/// Positive values first (ascending), then unspecified (arbitrary), then negative values (ascending).
+		/// </summary>
+		/// <remarks>
+		/// Ordering performed in <see cref="SqlTable.SqlTable(MappingSchema, Type, string)"/> constructor.
+		/// </remarks>
+		public int Order
+		{
+			get => _order ?? int.MaxValue;
+			set => _order = value;
+		}
+
+		/// <summary>
+		/// Returns <c>true</c>, if <see cref="Order"/> was configured for current attribute.
+		/// </summary>
+		/// <returns><c>true</c> if <see cref="Order"/> property was set in attribute.</returns>
+		public bool HasOrder() { return _order.HasValue; }
 	}
 }

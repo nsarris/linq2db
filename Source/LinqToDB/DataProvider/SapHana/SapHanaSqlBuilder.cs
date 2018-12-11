@@ -20,7 +20,7 @@ namespace LinqToDB.DataProvider.SapHana
 			return statement.NeedsIdentity() ? 2 : 1;
 		}
 
-		protected override void BuildCommand(int commandNumber)
+		protected override void BuildCommand(SqlStatement statement, int commandNumber)
 		{
 			var insertClause = Statement.GetInsertClause();
 			if (insertClause != null)
@@ -115,11 +115,11 @@ namespace LinqToDB.DataProvider.SapHana
 				case DataType.NVarChar:
 				case DataType.VarChar:
 				case DataType.VarBinary:
-					if (type.Length == int.MaxValue || type.Length < 0)
+					if (type.Length == null || type.Length > 5000 || type.Length < 1)
 					{
 						StringBuilder
 							.Append(type.DataType)
-							.Append("(Max)");
+							.Append("(5000)");
 						return;
 					}
 					break;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -25,7 +26,7 @@ namespace LinqToDB.DataProvider.SqlServer
 		protected override void BuildSql()
 		{
 			if (BuildAlternativeSql)
-				AlternativeBuildSql(true, base.BuildSql);
+				AlternativeBuildSql(true, base.BuildSql, "\t(SELECT NULL)");
 			else
 				base.BuildSql();
 		}
@@ -36,17 +37,17 @@ namespace LinqToDB.DataProvider.SqlServer
 			return StringBuilder;
 		}
 
-		protected override void BuildInsertQuery(SqlStatement statement, SqlInsertClause insertClasuse)
+		protected override void BuildInsertQuery(SqlStatement statement, SqlInsertClause insertClause, bool addAlias)
 		{
-			if (insertClasuse.WithIdentity)
+			if (insertClause.WithIdentity)
 			{
-				var identityField = insertClasuse.Into.GetIdentityField();
+				var identityField = insertClause.Into.GetIdentityField();
 
 				if (identityField != null && (identityField.DataType == DataType.Guid || SqlServerConfiguration.GenerateScopeIdentity == false))
 				{
 					AppendIndent()
 						.Append("DECLARE ");
-					AppendOutputTableVariable(insertClasuse.Into)
+					AppendOutputTableVariable(insertClause.Into)
 						.Append(" TABLE (")
 						.Append(Convert(identityField.PhysicalName, ConvertType.NameToQueryField))
 						.Append(" ");
@@ -57,7 +58,7 @@ namespace LinqToDB.DataProvider.SqlServer
 				}
 			}
 
-			base.BuildInsertQuery(statement, insertClasuse);
+			base.BuildInsertQuery(statement, insertClause, addAlias);
 		}
 
 		protected override void BuildOutputSubclause(SqlStatement statement, SqlInsertClause insertClause)
@@ -274,13 +275,14 @@ namespace LinqToDB.DataProvider.SqlServer
 			}
 			else
 			{
-				StringBuilder.Append("IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'");
+				StringBuilder.Append("IF (OBJECT_ID(N'");
 				BuildPhysicalTable(table, null);
-				StringBuilder.AppendLine("') AND type in (N'U'))");
+				StringBuilder.AppendLine("', N'U') IS NOT NULL)");
 
-				AppendIndent().Append("BEGIN DROP TABLE ");
+				Indent++;
+				AppendIndent().Append("DROP TABLE ");
 				BuildPhysicalTable(table, null);
-				StringBuilder.AppendLine(" END");
+				Indent--;
 			}
 		}
 
@@ -291,10 +293,19 @@ namespace LinqToDB.DataProvider.SqlServer
 				case DataType.Guid      : StringBuilder.Append("UniqueIdentifier"); return;
 				case DataType.Variant   : StringBuilder.Append("Sql_Variant");      return;
 				case DataType.NVarChar  :
+					if (type.Length == null || type.Length > 4000 || type.Length < 1)
+					{
+						StringBuilder
+							.Append(type.DataType)
+							.Append("(Max)");
+						return;
+					}
+
+					break;
+
 				case DataType.VarChar   :
 				case DataType.VarBinary :
-
-					if (type.Length == int.MaxValue || type.Length < 0)
+					if (type.Length == null || type.Length > 8000 || type.Length < 1)
 					{
 						StringBuilder
 							.Append(type.DataType)
@@ -313,7 +324,7 @@ namespace LinqToDB.DataProvider.SqlServer
 			return ((System.Data.SqlClient.SqlParameter)parameter).TypeName;
 		}
 
-#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+#if !NETSTANDARD1_6
 		protected override string GetUdtTypeName(IDbDataParameter parameter)
 		{
 			return ((System.Data.SqlClient.SqlParameter)parameter).UdtTypeName;
@@ -323,6 +334,14 @@ namespace LinqToDB.DataProvider.SqlServer
 		protected override string GetProviderTypeName(IDbDataParameter parameter)
 		{
 			return ((System.Data.SqlClient.SqlParameter)parameter).SqlDbType.ToString();
+		}
+
+		protected override void BuildTruncateTable(SqlTruncateTableStatement truncateTable)
+		{
+			if (truncateTable.ResetIdentity || truncateTable.Table.Fields.Values.All(f => !f.IsIdentity))
+				StringBuilder.Append("TRUNCATE TABLE ");
+			else
+				StringBuilder.Append("DELETE FROM ");
 		}
 	}
 }

@@ -109,6 +109,8 @@ namespace LinqToDB.DataProvider.Oracle
 
 			if (NeedSkip(selectQuery))
 			{
+				SkipAlias = false;
+
 				var aliases = GetTempAliases(2, "t");
 
 				if (_rowNumberAlias == null)
@@ -151,6 +153,8 @@ namespace LinqToDB.DataProvider.Oracle
 			}
 			else if (NeedTake(selectQuery) && (!selectQuery.OrderBy.IsEmpty || !selectQuery.Having.IsEmpty))
 			{
+				SkipAlias = false;
+
 				var aliases = GetTempAliases(1, "t");
 
 				AppendIndent().AppendFormat("SELECT {0}.*", aliases[0]).AppendLine();
@@ -219,9 +223,10 @@ namespace LinqToDB.DataProvider.Oracle
 				case DataType.Money          : StringBuilder.Append("Number(19,4)");              break;
 				case DataType.SmallMoney     : StringBuilder.Append("Number(10,4)");              break;
 				case DataType.NVarChar       :
-					StringBuilder.Append("VarChar2");
-					if (type.Length > 0)
-						StringBuilder.Append('(').Append(type.Length).Append(')');
+					if (type.Length == null || type.Length > 4000 || type.Length < 1)
+						StringBuilder.Append("VarChar2(4000)");
+					else
+						StringBuilder.Append($"VarChar2({type.Length})");
 					break;
 				case DataType.Boolean        : StringBuilder.Append("Char(1)");                   break;
 				case DataType.NText          : StringBuilder.Append("NClob");                     break;
@@ -238,10 +243,47 @@ namespace LinqToDB.DataProvider.Oracle
 			}
 		}
 
+		protected override void BuildDeleteQuery(SqlDeleteStatement deleteStatement)
+		{
+			if (deleteStatement.With?.Clauses.Count > 0)
+			{
+				BuildDeleteQuery2(deleteStatement);
+			}
+			else
+			{
+				base.BuildDeleteQuery(deleteStatement);
+			}
+		}
+
+		protected override void BuildInsertQuery(SqlStatement statement, SqlInsertClause insertClause, bool addAlias)
+		{
+			if (statement is SqlStatementWithQueryBase withQuery && withQuery.With?.Clauses.Count > 0)
+			{
+				BuildInsertQuery2(statement, insertClause, addAlias);
+			}
+			else
+			{
+				base.BuildInsertQuery(statement, insertClause, addAlias);
+			}
+		}
+
 		protected override void BuildFromClause(SqlStatement statement, SelectQuery selectQuery)
 		{
 			if (!statement.IsUpdate())
 				base.BuildFromClause(statement, selectQuery);
+		}
+
+		protected sealed override bool IsReserved(string word)
+		{
+			// TODO: now we use static 11g list
+			// proper solution will be use version-based list or load it from V$RESERVED_WORDS (needs research)
+			// right now list is a merge of two lists:
+			// SQL reserved words: https://docs.oracle.com/database/121/SQLRF/ap_keywd001.htm
+			// PL/SQL reserved words: https://docs.oracle.com/cd/B28359_01/appdev.111/b28370/reservewords.htm
+			// keywords are not included as they are keywords :)
+			//
+			// V$RESERVED_WORDS: https://docs.oracle.com/cd/B28359_01/server.111/b28320/dynviews_2126.htm
+			return ReservedWords.IsReserved(word, ProviderName.Oracle);
 		}
 
 		protected override void BuildColumnExpression(SelectQuery selectQuery, ISqlExpression expr, string alias, ref bool addAlias)
@@ -265,12 +307,52 @@ namespace LinqToDB.DataProvider.Oracle
 			if (wrap) StringBuilder.Append(" THEN 1 ELSE 0 END");
 		}
 
+		/// <summary>
+		/// Check if identifier is valid without quotation. Expects non-zero length string as input.
+		/// </summary>
+		private bool IsValidIdentifier(string name)
+		{
+			// https://docs.oracle.com/cd/B28359_01/server.111/b28286/sql_elements008.htm#SQLRF00223
+			// TODO: "Nonquoted identifiers can contain only alphanumeric characters from your database character set"
+			// now we check only for latin letters
+			// Also we should allow only uppercase letters:
+			// "Nonquoted identifiers are not case sensitive. Oracle interprets them as uppercase"
+			return !IsReserved(name) &&
+				((OracleTools.DontEscapeLowercaseIdentifiers && name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z')) &&
+				name.All(c =>
+					(OracleTools.DontEscapeLowercaseIdentifiers && c >= 'a' && c <= 'z') ||
+					(c >= 'A' && c <= 'Z') ||
+					(c >= '0' && c <= '9') ||
+					c == '$' ||
+					c == '#' ||
+					c == '_');
+		}
+
 		public override object Convert(object value, ConvertType convertType)
 		{
 			switch (convertType)
 			{
 				case ConvertType.NameToQueryParameter:
 					return ":" + value;
+				// needs proper list of reserved words and name validation
+				// something like we did for Firebird
+				// right now reserved words list contains garbage
+				case ConvertType.NameToQueryFieldAlias:
+				case ConvertType.NameToQueryField:
+				case ConvertType.NameToQueryTable:
+					if (value != null)
+					{
+						var name = value.ToString();
+
+						if (!IsValidIdentifier(name))
+						{
+							return '"' + name + '"';
+						}
+
+						return name;
+					}
+
+					break;
 			}
 
 			return value;
@@ -300,19 +382,23 @@ namespace LinqToDB.DataProvider.Oracle
 
 		public override int CommandCount(SqlStatement statement)
 		{
-			if (statement is SqlCreateTableStatement createTable)
+			switch (statement)
 			{
-				_identityField = createTable.Table.Fields.Values.FirstOrDefault(f => f.IsIdentity);
+				case SqlTruncateTableStatement truncateTable:
+					return truncateTable.ResetIdentity && truncateTable.Table.Fields.Values.Any(f => f.IsIdentity) ? 2 : 1;
 
-				if (_identityField != null)
-					return 3;
-			}
-			else if (statement is SqlDropTableStatement dropTable)
-			{
-				_identityField = dropTable.Table.Fields.Values.FirstOrDefault(f => f.IsIdentity);
+				case SqlCreateTableStatement createTable:
+					_identityField = createTable.Table.Fields.Values.FirstOrDefault(f => f.IsIdentity);
+					if (_identityField != null)
+						return 3;
+					break;
 
-				if (_identityField != null)
-					return 3;
+				case SqlDropTableStatement dropTable:
+					_identityField = dropTable.Table.Fields.Values.FirstOrDefault(f => f.IsIdentity);
+					if (_identityField != null)
+						return 3;
+
+					break;
 			}
 
 			return base.CommandCount(statement);
@@ -326,9 +412,9 @@ namespace LinqToDB.DataProvider.Oracle
 			}
 			else
 			{
-			var schemaPrefix = string.IsNullOrWhiteSpace(dropTable.Table.Schema)
-				? string.Empty
-				: dropTable.Table.Schema + ".";
+				var schemaPrefix = string.IsNullOrWhiteSpace(dropTable.Table.Schema)
+					? string.Empty
+					: dropTable.Table.Schema + ".";
 
 				StringBuilder
 					.Append("DROP TRIGGER ")
@@ -339,7 +425,7 @@ namespace LinqToDB.DataProvider.Oracle
 			}
 		}
 
-		protected override void BuildCommand(int commandNumber)
+		protected override void BuildCommand(SqlStatement statement, int commandNumber)
 		{
 			string GetSchemaPrefix(SqlTable table)
 			{
@@ -350,6 +436,29 @@ namespace LinqToDB.DataProvider.Oracle
 
 			switch (Statement)
 			{
+				case SqlTruncateTableStatement truncate:
+					StringBuilder
+						.AppendFormat(@"DECLARE
+	l_value number;
+BEGIN
+	-- Select the next value of the sequence
+	EXECUTE IMMEDIATE 'SELECT SIDENTITY_{0}.NEXTVAL FROM dual' INTO l_value;
+
+	-- Set a negative increment for the sequence, with value = the current value of the sequence
+	EXECUTE IMMEDIATE 'ALTER SEQUENCE SIDENTITY_{0} INCREMENT BY -' || l_value || ' MINVALUE 0';
+
+	-- Select once from the sequence, to take its current value back to 0
+	EXECUTE IMMEDIATE 'select SIDENTITY_{0}.NEXTVAL FROM dual' INTO l_value;
+
+	-- Set the increment back to 1
+	EXECUTE IMMEDIATE 'ALTER SEQUENCE SIDENTITY_{0} INCREMENT BY 1 MINVALUE 0';
+END;",
+							truncate.Table.PhysicalName)
+						.AppendLine()
+						;
+
+					break;
+
 				case SqlDropTableStatement dropTable:
 					if (commandNumber == 1)
 					{
@@ -390,8 +499,7 @@ namespace LinqToDB.DataProvider.Oracle
 						BuildPhysicalTable(createTable.Table, null);
 
 						StringBuilder
-							.AppendLine(" FOR EACH ROW")
-							.AppendLine  ()
+							.AppendLine  (" FOR EACH ROW")
 							.AppendLine  ("BEGIN")
 							.AppendFormat("\tSELECT {2}SIDENTITY_{1}.NEXTVAL INTO :NEW.{0} FROM dual;", _identityField.PhysicalName, createTable.Table.PhysicalName, schemaPrefix)
 							.AppendLine  ()
@@ -401,6 +509,11 @@ namespace LinqToDB.DataProvider.Oracle
 					break;
 				}
 			}
+		}
+
+		protected override void BuildTruncateTable(SqlTruncateTableStatement truncateTable)
+		{
+			StringBuilder.Append("TRUNCATE TABLE ");
 		}
 
 		public override StringBuilder BuildTableName(StringBuilder sb, string database, string schema, string table)

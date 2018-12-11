@@ -20,9 +20,10 @@ namespace LinqToDB.DataProvider.DB2
 		{
 			Version = version;
 
-			SqlProviderFlags.AcceptsTakeAsParameter       = false;
-			SqlProviderFlags.AcceptsTakeAsParameterIfSkip = true;
-			SqlProviderFlags.IsDistinctOrderBySupported   = version != DB2Version.zOS;
+			SqlProviderFlags.AcceptsTakeAsParameter            = false;
+			SqlProviderFlags.AcceptsTakeAsParameterIfSkip      = true;
+			SqlProviderFlags.IsDistinctOrderBySupported        = false;
+			SqlProviderFlags.IsCommonTableExpressionsSupported = true;
 
 			SetCharFieldToType<char>("CHAR", (r, i) => DataTools.GetChar(r, i));
 
@@ -121,6 +122,10 @@ namespace LinqToDB.DataProvider.DB2
 		public    override string ConnectionNamespace => DB2Tools.AssemblyName;
 		protected override string ConnectionTypeName  => DB2Tools.AssemblyName + ".DB2Connection, " + DB2Tools.AssemblyName;
 		protected override string DataReaderTypeName  => DB2Tools.AssemblyName + ".DB2DataReader, " + DB2Tools.AssemblyName;
+
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+		public override string DbFactoryProviderName => "IBM.Data.DB2";
+#endif
 
 		public DB2Version Version { get; }
 

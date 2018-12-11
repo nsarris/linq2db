@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-
+using System.Threading.Tasks;
 using LinqToDB;
 using LinqToDB.Data;
 
@@ -155,10 +155,19 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access, ProviderName.DB2, ProviderName.Informix, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.PostgreSQL, ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.Firebird, TestProvName.Firebird3, ProviderName.SapHana)]
-		public void DeleteMany1(string context)
+		[Test]
+		public void DeleteMany1(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -185,11 +194,19 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access, ProviderName.DB2, ProviderName.Informix, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.PostgreSQL, ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.Firebird, TestProvName.Firebird3, ProviderName.SapHana
-			)]
-		public void DeleteMany2(string context)
+		[Test]
+		public void DeleteMany2(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -225,11 +242,19 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access, ProviderName.DB2, ProviderName.Informix, ProviderName.OracleNative, ProviderName.OracleManaged,
-			ProviderName.PostgreSQL, ProviderName.SqlCe, ProviderName.SQLiteClassic, ProviderName.SQLiteMS, ProviderName.Firebird, TestProvName.Firebird3, ProviderName.SapHana
-			)]
-		public void DeleteMany3(string context)
+		[Test]
+		public void DeleteMany3(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Informix,
+				ProviderName.OracleNative, ProviderName.OracleManaged,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SqlCe,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.SapHana)]
+			string context)
 		{
 			var ids = new[] { 1001 };
 
@@ -264,23 +289,20 @@ namespace Tests.xUpdate
 			}
 		}
 
-		[Test, DataContextSource(
-			ProviderName.Access,
-			ProviderName.DB2,
-			ProviderName.Firebird,
-			TestProvName.Firebird3,
-			ProviderName.Informix,
-			ProviderName.MySql,
-			TestProvName.MariaDB,
-			TestProvName.MySql57,
-			ProviderName.PostgreSQL,
-			ProviderName.SQLiteClassic,
-			ProviderName.SQLiteMS,
-			ProviderName.SqlCe,
-			ProviderName.SqlServer2000,
-			ProviderName.SapHana
-			)]
-		public void DeleteTop(string context)
+		[Test]
+		public void DeleteTop(
+			[DataSources(
+				ProviderName.Access,
+				ProviderName.DB2,
+				ProviderName.Firebird, TestProvName.Firebird3,
+				ProviderName.Informix,
+				ProviderName.MySql, TestProvName.MariaDB, TestProvName.MySql57,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL92, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest,
+				ProviderName.SQLiteClassic, ProviderName.SQLiteMS,
+				ProviderName.SqlCe,
+				ProviderName.SqlServer2000,
+				ProviderName.SapHana)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -369,6 +391,84 @@ namespace Tests.xUpdate
 				finally
 				{
 					db.Parent.Delete(c => c.ParentID >= 1000);
+				}
+			}
+		}
+
+		[ActiveIssue(":NEW as parameter", Configuration = ProviderName.OracleNative)]
+		[Test, DataContextSource]
+		public void DeleteByTableName(string context)
+		{
+			const string schemaName = null;
+			var tableName  = "xxPerson" + TestUtils.GetNext().ToString();
+
+			using (var db = GetDataContext(context))
+			using (var table = db.CreateTempTable<Person>(tableName, schemaName: schemaName))
+			{
+				var iTable = (ITable<Person>)table;
+				Assert.AreEqual(tableName,  iTable.TableName);
+				Assert.AreEqual(schemaName, iTable.SchemaName);
+
+				var person = new Person()
+				{
+					FirstName = "Steven",
+					LastName = "King",
+					Gender = Gender.Male,
+				};
+
+				// insert a row into the table
+				db.Insert(person, tableName: tableName, schemaName: schemaName);
+				var newCount = table.Count();
+				Assert.AreEqual(1, newCount);
+
+				var personForDelete = table.Single();
+
+				db.Delete(personForDelete, tableName: tableName, schemaName: schemaName);
+
+				Assert.AreEqual(0, table.Count());
+			}
+		}
+
+		[ActiveIssue(":NEW as parameter", Configuration = ProviderName.OracleNative)]
+		[Test, DataContextSource]
+		public async Task DeleteByTableNameAsync(string context)
+		{
+			const string schemaName = null;
+			const string tableName  = "xxPerson";
+
+			using (var db = GetDataContext(context))
+			{
+				try
+				{
+					var table = await db.CreateTableAsync<Person>(tableName, schemaName: schemaName);
+
+					Assert.AreEqual(tableName, table.TableName);
+					Assert.AreEqual(schemaName, table.SchemaName);
+
+					var person = new Person()
+					{
+						FirstName = "Steven",
+						LastName  = "King",
+						Gender    = Gender.Male,
+					};
+
+					// insert a row into the table
+					await db.InsertAsync(person, tableName: tableName, schemaName: schemaName);
+					var newCount = await table.CountAsync();
+					Assert.AreEqual(1, newCount);
+
+					var personForDelete = await table.SingleAsync();
+
+					await db.DeleteAsync(personForDelete, tableName: tableName, schemaName: schemaName);
+
+					Assert.AreEqual(0, await table.CountAsync());
+
+					await table.DropAsync();
+				}
+				catch
+				{
+					await db.DropTableAsync<Person>(tableName, schemaName: schemaName);
+					throw;
 				}
 			}
 		}

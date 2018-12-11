@@ -21,12 +21,25 @@ namespace LinqToDB.DataProvider.MySql
 			ParameterSymbol = '@';
 		}
 
+		protected override bool IsRecursiveCteKeywordRequired   => true;
+		public    override bool IsNestedJoinParenthesisRequired => true;
+
+		protected override bool CanSkipRootAliases(SqlStatement statement)
+		{
+			if (statement.SelectQuery != null)
+			{
+				return statement.SelectQuery.From.Tables.Count > 0;
+			}
+
+			return true;
+		}
+
 		public override int CommandCount(SqlStatement statement)
 		{
 			return statement.NeedsIdentity() ? 2 : 1;
 		}
 
-		protected override void BuildCommand(int commandNumber)
+		protected override void BuildCommand(SqlStatement statement, int commandNumber)
 		{
 			StringBuilder.AppendLine("SELECT LAST_INSERT_ID()");
 		}
@@ -40,8 +53,6 @@ namespace LinqToDB.DataProvider.MySql
 		{
 			return "LIMIT {0}";
 		}
-
-		public override bool IsNestedJoinParenthesisRequired { get { return true; } }
 
 		protected override void BuildOffsetLimit(SelectQuery selectQuery)
 		{
@@ -87,9 +98,11 @@ namespace LinqToDB.DataProvider.MySql
 				case DataType.Single        : base.BuildDataType(SqlDataType.Decimal, createDbType); break;
 				case DataType.VarChar       :
 				case DataType.NVarChar      :
-					StringBuilder.Append("Char");
-					if (type.Length > 0)
-						StringBuilder.Append('(').Append(type.Length).Append(')');
+					// yep, char(0) is allowed
+					if (type.Length == null || type.Length > 255 || type.Length < 0)
+						StringBuilder.Append("Char(255)");
+					else
+						StringBuilder.Append($"Char({type.Length})");
 					break;
 				default: base.BuildDataType(type, createDbType);                                     break;
 			}
@@ -126,22 +139,22 @@ namespace LinqToDB.DataProvider.MySql
 		private static string _commandParameterPrefix = string.Empty;
 		public  static string  CommandParameterPrefix
 		{
-			get { return _commandParameterPrefix; }
-			set { _commandParameterPrefix = value ?? string.Empty; }
+			get => _commandParameterPrefix;
+			set => _commandParameterPrefix = value ?? string.Empty;
 		}
 
 		private static string _sprocParameterPrefix = string.Empty;
 		public  static string  SprocParameterPrefix
 		{
-			get { return _sprocParameterPrefix; }
-			set { _sprocParameterPrefix = value ?? string.Empty; }
+			get => _sprocParameterPrefix;
+			set => _sprocParameterPrefix = value ?? string.Empty;
 		}
 
 		private static List<char> _convertParameterSymbols;
 		public  static List<char>  ConvertParameterSymbols
 		{
-			get { return _convertParameterSymbols; }
-			set { _convertParameterSymbols = value ?? new List<char>(); }
+			get => _convertParameterSymbols;
+			set => _convertParameterSymbols = value ?? new List<char>();
 		}
 
 		public override object Convert(object value, ConvertType convertType)
@@ -233,7 +246,7 @@ namespace LinqToDB.DataProvider.MySql
 		{
 			var position = StringBuilder.Length;
 
-			BuildInsertQuery(insertOrUpdate, insertOrUpdate.Insert);
+			BuildInsertQuery(insertOrUpdate, insertOrUpdate.Insert, false);
 
 			if (insertOrUpdate.Update.Items.Count > 0)
 			{
@@ -304,5 +317,24 @@ namespace LinqToDB.DataProvider.MySql
 			dynamic p = parameter;
 			return p.MySqlDbType.ToString();
 		}
+
+		protected override void BuildTruncateTable(SqlTruncateTableStatement truncateTable)
+		{
+			if (truncateTable.ResetIdentity || truncateTable.Table.Fields.Values.All(f => !f.IsIdentity))
+				StringBuilder.Append("TRUNCATE TABLE ");
+			else
+				StringBuilder.Append("DELETE FROM ");
+		}
+
+//		protected override void BuildDropTableStatement(SqlDropTableStatement dropTable)
+//		{
+//			var table = dropTable.Table;
+//
+//			AppendIndent().Append("DROP TABLE ");
+//			BuildPhysicalTable(table, null);
+//			StringBuilder.AppendLine(" IF EXISTS");
+//
+//			base.BuildDropTableStatement(dropTable);
+//		}
 	}
 }

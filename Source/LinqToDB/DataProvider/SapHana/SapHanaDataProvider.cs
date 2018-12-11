@@ -9,6 +9,7 @@ namespace LinqToDB.DataProvider.SapHana
 	using Extensions;
 	using Mapping;
 	using SqlProvider;
+	using System.Data.Common;
 
 	public class SapHanaDataProvider : DynamicDataProviderBase
 	{
@@ -30,7 +31,8 @@ namespace LinqToDB.DataProvider.SapHana
 			//instead of replace with left join, in which case returns incorrect data
 			SqlProviderFlags.IsSubQueryColumnSupported = true;
 
-			SqlProviderFlags.IsTakeSupported = true;
+			SqlProviderFlags.IsTakeSupported            = true;
+			SqlProviderFlags.IsDistinctOrderBySupported = false;
 
 			//testing
 
@@ -45,6 +47,10 @@ namespace LinqToDB.DataProvider.SapHana
 		public    override string ConnectionNamespace => "Sap.Data.Hana";
 		protected override string ConnectionTypeName  => $"{ConnectionNamespace}.HanaConnection, {SapHanaTools.AssemblyName}";
 		protected override string DataReaderTypeName  => $"{ConnectionNamespace}.HanaDataReader, {SapHanaTools.AssemblyName}";
+
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+		public override string DbFactoryProviderName => "Sap.Data.Hana";
+#endif
 
 		static Action<IDbDataParameter> _setText;
 		static Action<IDbDataParameter> _setNText;

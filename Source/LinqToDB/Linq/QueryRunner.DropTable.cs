@@ -13,7 +13,7 @@ namespace LinqToDB.Linq
 		{
 			public static void Query(IDataContext dataContext, string tableName, string databaseName, string schemaName)
 			{
-				var sqlTable = new SqlTable<T>(dataContext.MappingSchema);
+				var sqlTable  = new SqlTable<T>(dataContext.MappingSchema);
 				var dropTable = new SqlDropTableStatement();
 
 				if (tableName    != null) sqlTable.PhysicalName = tableName;
@@ -34,7 +34,7 @@ namespace LinqToDB.Linq
 
 			public static async Task QueryAsync(IDataContext dataContext, string tableName, string databaseName, string schemaName, CancellationToken token)
 			{
-				var sqlTable = new SqlTable<T>(dataContext.MappingSchema);
+				var sqlTable  = new SqlTable<T>(dataContext.MappingSchema);
 				var dropTable = new SqlDropTableStatement();
 
 				if (tableName    != null) sqlTable.PhysicalName = tableName;

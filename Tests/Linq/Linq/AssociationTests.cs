@@ -487,8 +487,13 @@ namespace Tests.Linq
 					from p1 in db.Parent select p1.ParentTest);
 		}
 
-		[Test, IncludeDataContextSource(false, ProviderName.SqlServer2012, ProviderName.PostgreSQL)]
-		public void MultipleUse(string context)
+		[Test]
+		public void MultipleUse(
+			[IncludeDataSources(
+				false,
+				ProviderName.SqlServer2012,
+				ProviderName.PostgreSQL, ProviderName.PostgreSQL93, ProviderName.PostgreSQL95, TestProvName.PostgreSQL10, TestProvName.PostgreSQL11, TestProvName.PostgreSQLLatest)]
+			string context)
 		{
 			using (var db = new TestDataConnection(context))
 			{
@@ -864,10 +869,41 @@ namespace Tests.Linq
 				db.Child.SelectMany(_ => AssociationExtension.QuerableParent(_, db)));
 			}
 		}
+
+		[Test]
+		public void AssociationExpressionMethod([DataSources] string context)
+		{
+			using (var db = GetDataContext(context))
+			{
+				var list = db.Parent.Select(p => p.ChildPredicate()).ToList();
+			}
+		}
 	}
 
 	public static class AssociationExtension
 	{
+		[Association(ExpressionPredicate = nameof(ChildPredicateImpl))]
+		public static Child ChildPredicate(this Parent parent)
+		{
+			throw new InvalidOperationException("Used only as Association helper");
+		}
+
+		static Expression<Func<Parent,Child,bool>> ChildPredicateImpl()
+		{
+			return (p,c) => p.ParentID == c.ParentID && c.ChildPredicateMethod();
+		}
+
+		[ExpressionMethod(nameof(ChildPredicateMethodImpl))]
+		public static bool ChildPredicateMethod(this Child child)
+		{
+			throw new NotImplementedException();
+		}
+
+		static Expression<Func<Child,bool>> ChildPredicateMethodImpl()
+		{
+			return c => c.ChildID > 1;
+		}
+
 		[Association(ThisKey = "ParentID", OtherKey = "ParentID")]
 		public static IEnumerable<Child> Children(this Parent parent)
 		{

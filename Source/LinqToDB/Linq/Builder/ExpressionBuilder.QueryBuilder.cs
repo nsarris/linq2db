@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using LinqToDB.Common;
 
 namespace LinqToDB.Linq.Builder
 {
@@ -46,11 +47,11 @@ namespace LinqToDB.Linq.Builder
 
 		public Expression BuildExpression(IBuildContext context, Expression expression, bool enforceServerSide)
 		{
-			var newExpr = expression.Transform(expr => TransformExpression(context, expr, enforceServerSide));
+			var newExpr = expression.Transform(expr => TransformExpression(context, expr, enforceServerSide, null));
 			return newExpr;
 		}
 
-		TransformInfo TransformExpression(IBuildContext context, Expression expr, bool enforceServerSide)
+		TransformInfo TransformExpression(IBuildContext context, Expression expr, bool enforceServerSide, string alias)
 		{
 			if (_skippedExpressions.Contains(expr))
 				return new TransformInfo(expr, true);
@@ -85,7 +86,7 @@ namespace LinqToDB.Linq.Builder
 				case ExpressionType.MemberAccess:
 					{
 						if (IsServerSideOnly(expr) || PreferServerSide(expr, enforceServerSide))
-							return new TransformInfo(BuildSql(context, expr));
+							return new TransformInfo(BuildSql(context, expr, alias));
 
 						var ma = (MemberExpression)expr;
 
@@ -94,7 +95,7 @@ namespace LinqToDB.Linq.Builder
 						{
 							// In Grouping KeyContext we have to perform calculation on server side
 							if (Contexts.Any(c => c is GroupByBuilder.KeyContext))
-								return new TransformInfo(BuildSql(context, expr));
+								return new TransformInfo(BuildSql(context, expr, alias));
 							break;
 						}
 
@@ -136,7 +137,13 @@ namespace LinqToDB.Linq.Builder
 								}
 							}
 
-							return new TransformInfo(ctx.BuildExpression(ma, 0, enforceServerSide));
+							var prevCount  = ctx.SelectQuery.Select.Columns.Count;
+							var expression = ctx.BuildExpression(ma, 0, enforceServerSide);
+							if (!alias.IsNullOrEmpty() && (ctx.SelectQuery.Select.Columns.Count - prevCount) == 1)
+							{
+								ctx.SelectQuery.Select.Columns[ctx.SelectQuery.Select.Columns.Count - 1].Alias = alias;
+							}
+							return new TransformInfo(expression);
 						}
 
 						var ex = ma.Expression;
@@ -151,6 +158,8 @@ namespace LinqToDB.Linq.Builder
 								if (!IsMultipleQuery(ce))
 								{
 									var info = GetSubQueryContext(context, ce);
+									if (alias != null)
+										info.Context.SetAlias(alias);
 									var par  = Expression.Parameter(ex.Type);
 									var bex  = info.Context.BuildExpression(ma.Transform(e => e == ex ? par : e), 0, enforceServerSide);
 
@@ -181,7 +190,14 @@ namespace LinqToDB.Linq.Builder
 						var ctx = GetContext(context, expr);
 
 						if (ctx != null)
-							return new TransformInfo(ctx.BuildExpression(expr, 0, enforceServerSide));
+						{
+							var buildExpr = ctx.BuildExpression(expr, 0, enforceServerSide);
+							if (buildExpr.Type != expr.Type)
+							{
+								buildExpr = Expression.Convert(buildExpr, expr.Type);
+							}
+							return new TransformInfo(buildExpr);
+						}
 
 						break;
 					}
@@ -200,17 +216,17 @@ namespace LinqToDB.Linq.Builder
 				case ExpressionType.Coalesce:
 
 					if (expr.Type == typeof(string) && MappingSchema.GetDefaultValue(typeof(string)) != null)
-						return new TransformInfo(BuildSql(context, expr));
+						return new TransformInfo(BuildSql(context, expr, alias));
 
 					if (CanBeTranslatedToSql(context, ConvertExpression(expr), true))
-						return new TransformInfo(BuildSql(context, expr));
+						return new TransformInfo(BuildSql(context, expr, alias));
 
 					break;
 
 				case ExpressionType.Conditional:
 
 					if (CanBeTranslatedToSql(context, ConvertExpression(expr), true))
-						return new TransformInfo(BuildSql(context, expr));
+						return new TransformInfo(BuildSql(context, expr, alias));
 					break;
 
 				case ExpressionType.Call:
@@ -252,14 +268,37 @@ namespace LinqToDB.Linq.Builder
 							if (IsMultipleQuery(ce))
 								return new TransformInfo(BuildMultipleQuery(context, ce, enforceServerSide));
 
-							return new TransformInfo(GetSubQueryExpression(context, ce, enforceServerSide));
+							return new TransformInfo(GetSubQueryExpression(context, ce, enforceServerSide, alias));
 						}
 
-						if (IsServerSideOnly(expr) || PreferServerSide(expr, enforceServerSide))
-							return new TransformInfo(BuildSql(context, expr));
+						if (IsServerSideOnly(expr) || PreferServerSide(expr, enforceServerSide) || ce.Method.IsSqlPropertyMethodEx())
+							return new TransformInfo(BuildSql(context, expr, alias));
 					}
 
 					break;
+
+				case ExpressionType.New:
+					{
+						var ne = (NewExpression)expr;
+
+						List<Expression> arguments = new List<Expression>();
+						for (var i = 0; i < ne.Arguments.Count; i++)
+						{
+							var a = ne.Arguments[i];
+							var memberAlias = ne.Members?[i].Name;
+							var newArgument =
+								a.Transform(ae => TransformExpression(context, ae, enforceServerSide, memberAlias));
+							a = newArgument;
+							arguments.Add(a);
+						}
+
+						if (arguments.Count > 0)
+						{
+							ne = ne.Update(arguments);
+						}
+
+						return new TransformInfo(ne, true);
+					}
 			}
 
 			if (EnforceServerSide(context))
@@ -267,14 +306,13 @@ namespace LinqToDB.Linq.Builder
 				switch (expr.NodeType)
 				{
 					case ExpressionType.MemberInit :
-					case ExpressionType.New        :
 					case ExpressionType.Convert    :
 						break;
 
 					default                        :
 						if (CanBeCompiled(expr))
 							break;
-						return new TransformInfo(BuildSql(context, expr));
+						return new TransformInfo(BuildSql(context, expr, alias));
 				}
 			}
 
@@ -315,10 +353,15 @@ namespace LinqToDB.Linq.Builder
 			return info;
 		}
 
-		public Expression GetSubQueryExpression(IBuildContext context, MethodCallExpression expr, bool enforceServerSide)
+		public Expression GetSubQueryExpression(IBuildContext context, MethodCallExpression expr, bool enforceServerSide, string alias)
 		{
 			var info = GetSubQueryContext(context, expr);
-			return info.Expression ?? (info.Expression = info.Context.BuildExpression(null, 0, enforceServerSide));
+			if (info.Expression == null)
+				info.Expression = info.Context.BuildExpression(null, 0, enforceServerSide);
+
+			if (!alias.IsNullOrEmpty())
+				info.Context.SetAlias(alias);
+			return info.Expression;
 		}
 
 		static bool EnforceServerSide(IBuildContext context)
@@ -330,10 +373,13 @@ namespace LinqToDB.Linq.Builder
 
 		#region BuildSql
 
-		Expression BuildSql(IBuildContext context, Expression expression)
+		Expression BuildSql(IBuildContext context, Expression expression, string alias)
 		{
 			var sqlex = ConvertToSqlExpression(context, expression);
 			var idx   = context.SelectQuery.Select.Add(sqlex);
+
+			if (alias != null)
+				context.SelectQuery.Select.Columns[idx].RawAlias = alias;
 
 			idx = context.ConvertToParentIndex(idx, context);
 
@@ -439,12 +485,12 @@ namespace LinqToDB.Linq.Builder
 
 			BlockExpressions.Add(expression);
 
-			expression = Expression.Block(BlockVariables, BlockExpressions);
+			var blockExpression = Expression.Block(BlockVariables, BlockExpressions);
 
 			while (BlockVariables.  Count > 1) BlockVariables.  RemoveAt(BlockVariables.  Count - 1);
 			while (BlockExpressions.Count > 1) BlockExpressions.RemoveAt(BlockExpressions.Count - 1);
 
-			return expression;
+			return blockExpression;
 		}
 
 		public ParameterExpression BuildVariable(Expression expr, string name = null)
@@ -470,7 +516,7 @@ namespace LinqToDB.Linq.Builder
 				expr = Expression.Convert(expr, type);
 
 			var mapper = Expression.Lambda<Func<IQueryRunner,IDataContext,IDataReader,Expression,object[],T>>(
-				BuildBlock(expr), new []
+				BuildBlock(expr), new[]
 				{
 					QueryRunnerParam,
 					DataContextParam,
