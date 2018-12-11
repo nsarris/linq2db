@@ -1,12 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net46;netcoreapp2.0</TargetFrameworks>
+		<TargetFrameworks>net452;netcoreapp2.0</TargetFrameworks>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <PackageReference Include="Npgsql" Version="3.2.7" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Source\LinqToDB\LinqToDB.csproj" />
@@ -133,12 +129,12 @@
 		</Compile>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' != 'net46'">
+	<ItemGroup Condition="'$(TargetFramework)' != 'net452'">
 		<None Remove="SqlServer.tt" />
 		<Compile Remove="SqlServer.generated.cs" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net46'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net452'">
 		<PackageReference Include="Microsoft.SqlServer.Types" Version="14.0.314.76" />
 
 		<None Update="SqlServer.tt">
