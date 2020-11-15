@@ -80,6 +80,12 @@ namespace Tests
 		}
 
 		/// <summary>
+		/// Returns the provider family name, e.g. SqlServer for SqlServer.2000 etc.
+		/// </summary>
+		public static string GetProviderFamily(IDataContext db)
+			=> TestBase.GetProviderDescriptor(GetContextName(db)).Family;
+
+		/// <summary>
 		/// Returns schema name for provided connection.
 		/// Returns UNUSED_SCHEMA if fully-qualified table name doesn't support database name.
 		/// </summary>
@@ -87,37 +93,20 @@ namespace Tests
 		{
 			switch (GetContextName(db))
 			{
-				case ProviderName.Informix:
-				case ProviderName.InformixDB2:
-				case ProviderName.Oracle:
-				case ProviderName.OracleNative:
-				case ProviderName.OracleManaged:
-				case TestProvName.Oracle11Native:
-				case TestProvName.Oracle11Managed:
-				case ProviderName.PostgreSQL:
-				case ProviderName.PostgreSQL92:
-				case ProviderName.PostgreSQL93:
-				case ProviderName.PostgreSQL95:
-				case TestProvName.PostgreSQL10:
-				case TestProvName.PostgreSQL11:
-				case TestProvName.PostgreSQL12:
-				case TestProvName.PostgreSQL13:
-				case ProviderName.DB2:
-				case ProviderName.Sybase:
-				case ProviderName.SybaseManaged:
-				case ProviderName.SqlServer2005:
-				case ProviderName.SqlServer2008:
-				case ProviderName.SqlServer2012:
-				case ProviderName.SqlServer2014:
-				case TestProvName.SqlServer2016:
-				case ProviderName.SqlServer2017:
-				case TestProvName.SqlServer2019:
-				case TestProvName.SqlAzure:
-				case ProviderName.SapHanaNative:
-				case ProviderName.SapHanaOdbc:
-					return db.GetTable<LinqDataTypes>().Select(_ => SchemaName()).First();
 				case ProviderName.SqlServer2000:
 					return db.FromSql<string>($"SELECT TABLE_SCHEMA FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = {nameof(LinqDataTypes)}").First();
+			}
+
+			switch (GetProviderFamily(db))
+			{
+				case ProviderName.Informix:
+				case ProviderName.Oracle:
+				case ProviderName.PostgreSQL:
+				case ProviderName.DB2:
+				case ProviderName.Sybase:
+				case ProviderName.SqlServer:
+				case ProviderName.SapHana:
+					return db.GetTable<LinqDataTypes>().Select(_ => SchemaName()).First();
 			}
 
 			return NO_SCHEMA_NAME;
@@ -132,24 +121,16 @@ namespace Tests
 			switch (GetContextName(db))
 			{
 				case ProviderName.SybaseManaged:
-				case ProviderName.SqlServer2000:
-				case ProviderName.SqlServer2005:
-				case ProviderName.SqlServer2008:
-				case ProviderName.SqlServer2012:
-				case ProviderName.SqlServer2014:
-				case TestProvName.SqlServer2016:
-				case ProviderName.SqlServer2017:
-				case TestProvName.SqlServer2019:
-				case TestProvName.SqlAzure:
-				case ProviderName.OracleManaged:
-				case ProviderName.OracleNative:
-				case TestProvName.Oracle11Native:
-				case TestProvName.Oracle11Managed:
-				case ProviderName.Informix:
-				case ProviderName.InformixDB2:
 					return db.Select(() => ServerName());
-				case ProviderName.SapHanaNative:
-				case ProviderName.SapHanaOdbc:
+			}
+
+			switch (GetProviderFamily(db))
+			{
+				case ProviderName.SqlServer:
+				case ProviderName.Oracle:
+				case ProviderName.Informix:
+					return db.Select(() => ServerName());
+				case ProviderName.SapHana:
 					/* SAP HANA should be configured for linked server queries
 					 This will help to configure (especially second link):
 					 https://www.linkedin.com/pulse/cross-database-queries-thing-past-how-use-sap-hana-your-nandan
@@ -189,43 +170,19 @@ namespace Tests
 		/// </summary>
 		public static string GetDatabaseName(IDataContext db)
 		{
-			switch (GetContextName(db))
+			switch (GetProviderFamily(db))
 			{
-				case ProviderName.SQLiteClassic:
-				case TestProvName.SQLiteClassicMiniProfilerMapped:
-				case TestProvName.SQLiteClassicMiniProfilerUnmapped:
-				case ProviderName.SQLiteMS:
+				case ProviderName.SQLite:
 					return "main";
 				case ProviderName.Access:
-				case ProviderName.AccessOdbc:
 					return "Database\\TestData";
 				case ProviderName.MySql:
-				case ProviderName.MySqlConnector:
-				case TestProvName.MariaDB:
-				case TestProvName.MySql55:
 				case ProviderName.PostgreSQL:
-				case ProviderName.PostgreSQL92:
-				case ProviderName.PostgreSQL93:
-				case ProviderName.PostgreSQL95:
-				case TestProvName.PostgreSQL10:
-				case TestProvName.PostgreSQL11:
-				case TestProvName.PostgreSQL12:
-				case TestProvName.PostgreSQL13:
 				case ProviderName.DB2:
 				case ProviderName.Sybase:
-				case ProviderName.SybaseManaged:
-				case ProviderName.SqlServer2000:
-				case ProviderName.SqlServer2005:
-				case ProviderName.SqlServer2008:
-				case ProviderName.SqlServer2012:
-				case ProviderName.SqlServer2014:
-				case TestProvName.SqlServer2016:
-				case ProviderName.SqlServer2017:
-				case TestProvName.SqlServer2019:
-				case TestProvName.SqlAzure:
+				case ProviderName.SqlServer:
 					return db.GetTable<LinqDataTypes>().Select(_ => DbName()).First();
 				case ProviderName.Informix:
-				case ProviderName.InformixDB2:
 					return db.GetTable<LinqDataTypes>().Select(_ => DbInfo("dbname")).First();
 			}
 

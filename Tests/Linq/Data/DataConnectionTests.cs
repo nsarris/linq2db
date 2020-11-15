@@ -26,6 +26,7 @@ namespace Tests.Data
 	using LinqToDB.Data.RetryPolicy;
 	using LinqToDB.Mapping;
 	using Model;
+	using LinqToDB.Tools;
 
 	[TestFixture]
 	public class DataConnectionTests : TestBase
@@ -1107,19 +1108,22 @@ namespace Tests.Data
 		public void TestDisposeFlagCloning962Test1(
 			[DataSources(false)] string context, [Values] bool withScope)
 		{
+			var provider = GetProviderDescriptor(context);
+
 			if (withScope && (
-				context == ProviderName.DB2            ||
-				context == ProviderName.InformixDB2    ||
-				context == ProviderName.MySqlConnector ||
-				context == ProviderName.SapHanaNative  ||
-				context == ProviderName.SqlCe          ||
-				context == ProviderName.Sybase         ||
-				context.Contains("Firebird")           ||
-				context.Contains("Oracle")             ||
-				context.Contains("PostgreSQL")         ||
-				context.Contains("SqlServer")          ||
-				context.Contains("SqlAzure")           ||
-				context.Contains(ProviderName.SQLiteClassic)
+				provider.ProviderName.In(
+					ProviderName.DB2,
+					ProviderName.InformixDB2,
+					ProviderName.MySqlConnector,
+					ProviderName.SapHanaNative,
+					ProviderName.Sybase)		||
+				provider.Family.In(
+					ProviderName.SqlCe,
+					ProviderName.Firebird,
+					ProviderName.Oracle,
+					ProviderName.PostgreSQL,
+					ProviderName.SqlServer)		||
+				provider.IsSQLiteClassic()
 				))
 			{
 				// DB2: ERROR [58005] [IBM][DB2.NET] SQL0902 An unexpected exception has occurred in  Process: 22188 Thread 16 AppDomain: Name:domain-1b9769ae-linq2db.Tests.dll
@@ -1160,22 +1164,28 @@ namespace Tests.Data
 		public void TestDisposeFlagCloning962Test2(
 			[DataSources(false)] string context, [Values] bool withScope)
 		{
+			var provider = GetProviderDescriptor(context);
+
 			if (withScope && (
-				context == ProviderName.DB2                 ||
-				context == ProviderName.InformixDB2         ||
-				context == ProviderName.SapHanaOdbc         ||
-				context == ProviderName.SqlCe               ||
-				context == ProviderName.Sybase              ||
+				provider.ProviderName.In(
 #if !NET472
-				(context.Contains("Oracle") && context.Contains("Managed")) ||
-				context == ProviderName.SapHanaNative       ||
+					ProviderName.SapHanaNative,
 #endif
-				TestProvName.AllMySqlData.Contains(context) ||
-				context.StartsWith("Access")                ||
-				context.Contains("SqlServer")               ||
-				context.Contains("SqlAzure")                ||
-				context.Contains("PostgreSQL")              ||
-				context.Contains(ProviderName.SQLiteClassic)
+					ProviderName.DB2,
+					ProviderName.InformixDB2,
+					ProviderName.SapHanaOdbc,
+					ProviderName.Sybase)		||
+				provider.Family.In(
+					ProviderName.Access,
+					ProviderName.SqlCe,
+					ProviderName.SqlServer,
+					ProviderName.PostgreSQL)	||
+#if !NET472
+				provider.IsOracledManageed()	||
+				
+#endif
+				provider.IsSQLiteClassic() ||
+				provider.IsMySQLData()
 				))
 			{
 				// Access: The ITransactionLocal interface is not supported by the 'Microsoft.Jet.OLEDB.4.0' provider.  Local transactions are unavailable with the current provider.

@@ -31,15 +31,14 @@ namespace Tests
 			var providers = skipAttrs.Count == 0 ?
 				GetProviders().ToList() :
 				GetProviders().Where(a => !skipAttrs.Contains(a)).ToList();
-
-			if (NoLinqService || !IncludeLinqService)
-				return providers;
-
 #if NETFRAMEWORK
-			return providers.Concat(providers.Select(p => p + ".LinqService"));
-#else
-			return providers;
+			if (!NoLinqService && IncludeLinqService)
+				providers.AddRange(providers.Select(p => p + ".LinqService"));
 #endif
+			if (parameter.ParameterType == typeof(ProviderDescriptor))
+				return providers.Select(TestBase.ProviderDescriptorFactory.FromContext);
+			else
+				return providers;
 		}
 
 		protected abstract IEnumerable<string> GetProviders();

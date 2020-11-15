@@ -1152,6 +1152,15 @@ namespace Tests
 			return context.Replace(".LinqService", "");
 		}
 
+		//Public property so that TestInitialization can override it.
+		public static IProviderDescriptorFactory ProviderDescriptorFactory { get; set; } = new ProviderDescriptorFactory();
+
+		public static ProviderDescriptor GetProviderDescriptor(string providerName)
+			=> ProviderDescriptorFactory.FromContext(providerName);
+
+		public static string GetFamily(string providerName)
+			=> GetProviderDescriptor(providerName).Family;
+
 		[TearDown]
 		public virtual void OnAfterTest()
 		{

@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Linq;
 
 using LinqToDB;
 using LinqToDB.Mapping;
-
+using LinqToDB.Tools;
 using NUnit.Framework;
 
 namespace Tests.Linq
@@ -102,6 +102,8 @@ namespace Tests.Linq
 		[Test]
 		public void StringTrimming([DataSources(TestProvName.AllInformix)] string context)
 		{
+			var provider = GetProviderDescriptor(context);
+
 			using (var db = GetDataContext(context))
 			{
 				var lastId = db.GetTable<StringTestTable>().Select(_ => _.Id).Max();
@@ -114,13 +116,10 @@ namespace Tests.Linq
 					{
 						var query = db.GetTable<StringTestTable>().Value(_ => _.NString, record.NString);
 
-						if (!SkipChar(context))
+						if (!SkipChar(provider))
 							query = query.Value(_ => _.String, record.String);
 
-						if (   context == ProviderName.Firebird
-							|| context == ProviderName.Firebird + ".LinqService"
-							|| context == TestProvName.Firebird3
-							|| context == TestProvName.Firebird3 + ".LinqService")
+						if (provider.Family == ProviderName.Firebird)
 							query = db.GetTable<StringTestTable>().Value(_ => _.String, record.String);
 
 						query.Insert();
@@ -132,20 +131,17 @@ namespace Tests.Linq
 
 					for (var i = 0; i < records.Length; i++)
 					{
-						if (!SkipChar(context))
+						if (!SkipChar(provider))
 						{
-							if (context.Contains("Sybase"))
+							if (provider.Family == ProviderName.Sybase)
 								Assert.AreEqual(testData[i].String?.TrimEnd(' ')?.TrimEnd('\0'), records[i].String);
 							else
 								Assert.AreEqual(testData[i].String?.TrimEnd(' '), records[i].String);
 						}
 
-						if (context != ProviderName.Firebird
-							  && context != ProviderName.Firebird + ".LinqService"
-							  && context != TestProvName.Firebird3
-							  && context != TestProvName.Firebird3 + ".LinqService")
+						if (provider.Family != ProviderName.Firebird)
 						{
-							if (context.Contains("Sybase"))
+							if (provider.Family == ProviderName.Sybase)
 								Assert.AreEqual(testData[i].NString?.TrimEnd(' ')?.TrimEnd('\0'), records[i].NString);
 							else
 								Assert.AreEqual(testData[i].NString?.TrimEnd(' '), records[i].NString);
@@ -162,21 +158,22 @@ namespace Tests.Linq
 
 		private CharTestTable[] GetCharData([DataSources] string context)
 		{
-			var provider = GetProviderName(context, out var _);
+			var provider = GetProviderDescriptor(context);
 
 			// filter out null-character test cases for servers/providers without support
-			if (   context.Contains(ProviderName.PostgreSQL)
-				|| provider == ProviderName.DB2
-				|| provider == ProviderName.SqlCe
-				|| context.Contains(ProviderName.SapHana))
+			if (provider.Family.In(
+				ProviderName.PostgreSQL,
+				ProviderName.DB2,
+				ProviderName.SqlCe
+				))
 				return CharTestData.Where(_ => _.NChar != '\0').ToArray();
 
 			// I wonder why
-			if (context.Contains(ProviderName.Firebird))
+			if (provider.Family == ProviderName.Firebird)
 				return CharTestData.Where(_ => _.NChar != '\xA0').ToArray();
 
 			// also strange
-			if (context.Contains(TestProvName.AllInformix))
+			if (provider.Family == ProviderName.Informix)
 				return CharTestData.Where(_ => _.NChar != '\0' && (_.NChar ?? 0) < byte.MaxValue).ToArray();
 
 			return CharTestData;
@@ -184,23 +181,23 @@ namespace Tests.Linq
 
 		private StringTestTable[] GetStringData([DataSources] string context)
 		{
-			var provider = GetProviderName(context, out var _);
+			var provider = GetProviderDescriptor(context);
 
 			// filter out null-character test cases for servers/providers without support
-			if (context.Contains(ProviderName.PostgreSQL)
-				|| provider == ProviderName.DB2
-				|| context  == ProviderName.DB2           + ".LinqService"
-				|| context.Contains("SQLite")
-				|| provider == ProviderName.SqlCe
-				|| context.Contains(ProviderName.SapHana))
+			if (provider.Family.In(
+					ProviderName.PostgreSQL,
+					ProviderName.DB2,
+					ProviderName.SQLite,
+					ProviderName.SapHana
+				))
 				return StringTestData.Where(_ => !(_.NString ?? string.Empty).Contains("\0")).ToArray();
 
 			// I wonder why
-			if (context.Contains(ProviderName.Firebird))
+			if (provider.Family == ProviderName.Firebird)
 				return StringTestData.Where(_ => !(_.NString ?? string.Empty).Contains("\xA0")).ToArray();
 
 			// also strange
-			if (context.Contains(TestProvName.AllInformix))
+			if (provider.Family == ProviderName.Informix)
 				return StringTestData.Where(_ => !(_.NString ?? string.Empty).Contains("\0")
 					&& !(_.NString ?? string.Empty).Any(c => (int)c > byte.MaxValue)).ToArray();
 
@@ -239,6 +236,8 @@ namespace Tests.Linq
 		[Test]
 		public void CharTrimming([DataSources(TestProvName.AllInformix)] string context)
 		{
+			var provider = GetProviderDescriptor(context);
+
 			using (var db = GetDataContext(context))
 			{
 				var lastId = db.GetTable<CharTestTable>().Select(_ => _.Id).Max();
@@ -250,10 +249,10 @@ namespace Tests.Linq
 					foreach (var record in testData)
 					{
 						var query = db.GetTable<CharTestTable>().Value(_ => _.NChar, record.NChar);
-						if (!SkipChar(context))
+						if (!SkipChar(provider))
 							query = query.Value(_ => _.Char, record.Char);
 
-						if (context.Contains(ProviderName.Firebird))
+						if (provider.Family == ProviderName.Firebird)
 							query = db.GetTable<CharTestTable>().Value(_ => _.Char, record.Char);
 
 						query.Insert();
@@ -265,7 +264,7 @@ namespace Tests.Linq
 
 					for (var i = 0; i < records.Length; i++)
 					{
-						if (context.StartsWith(ProviderName.SapHana))
+						if (provider.Family == ProviderName.SapHana)
 						{
 							// SAP or provider trims space and we return default value, which is \0 for char
 							// or we insert it incorrectly?
@@ -282,27 +281,20 @@ namespace Tests.Linq
 							continue;
 						}
 
-						if (!SkipChar(context))
+						if (!SkipChar(provider))
 						{
-							if (context.Contains("Sybase"))
+							if (provider.Family == ProviderName.Sybase)
 								Assert.AreEqual(testData[i].Char == '\0' ? ' ' : testData[i].Char, records[i].Char);
 							else
 								Assert.AreEqual(testData[i].Char, records[i].Char);
 						}
 
-						if (context == ProviderName.MySql
-							  || context == ProviderName.MySql + ".LinqService"
-							  || context == ProviderName.MySqlConnector
-							  || context == ProviderName.MySqlConnector + ".LinqService"
-							  || context == TestProvName.MySql55
-							  || context == TestProvName.MySql55 + ".LinqService"
-							  || context == TestProvName.MariaDB
-							  || context == TestProvName.MariaDB + ".LinqService")
+						if (provider.Family == ProviderName.MySql)
 							// for some reason mysql doesn't insert space
 							Assert.AreEqual(testData[i].NChar == ' ' ? '\0' : testData[i].NChar, records[i].NChar);
 						else if (!context.Contains(ProviderName.Firebird))
 						{
-							if (context.Contains("Sybase"))
+							if (provider.Family == ProviderName.Sybase)
 								Assert.AreEqual(testData[i].NChar == '\0' ? ' ' : testData[i].NChar, records[i].NChar);
 							else
 								Assert.AreEqual(testData[i].NChar, records[i].NChar);
@@ -316,21 +308,14 @@ namespace Tests.Linq
 			}
 		}
 
-		private static bool SkipChar([DataSources] string context)
-		{
-			return context == ProviderName.SqlCe
-				|| context == ProviderName.SqlCe      + ".LinqService"
-				|| context == ProviderName.DB2
-				|| context == ProviderName.DB2        + ".LinqService"
-				|| context.Contains(ProviderName.PostgreSQL)
-				|| context == ProviderName.MySql
-				|| context == ProviderName.MySql + ".LinqService"
-				|| context == ProviderName.MySqlConnector
-				|| context == ProviderName.MySqlConnector + ".LinqService"
-				|| context == TestProvName.MySql55
-				|| context == TestProvName.MySql55 + ".LinqService"
-				|| context == TestProvName.MariaDB
-				|| context == TestProvName.MariaDB    + ".LinqService";
-		}
+		private static bool SkipChar(ProviderDescriptor provider)
+			=> provider.Family.In(
+				ProviderName.SqlCe,
+				ProviderName.DB2,
+				ProviderName.PostgreSQL,
+				ProviderName.MySql
+				);
+
+
 	}
 }
